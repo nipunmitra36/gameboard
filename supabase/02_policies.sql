@@ -30,6 +30,8 @@ grant select on public.players_public, public.player_adjustment_totals to anon, 
 
 revoke execute on function public.register_player(text, text, text, text, text) from public;
 grant  execute on function public.register_player(text, text, text, text, text) to anon, authenticated;
+revoke execute on function public.import_backup(jsonb) from public, anon;
+grant  execute on function public.import_backup(jsonb) to authenticated;
 grant  execute on function public.is_admin() to anon, authenticated;
 
 -- ---------------------------------------------------------------------

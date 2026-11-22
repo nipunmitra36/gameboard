@@ -411,5 +411,88 @@ begin
 end;
 $$;
 
+-- Import a local-browser backup only into an empty database. The admin check
+-- and table constraints still apply; the function never deletes remote data.
+create or replace function public.import_backup(p_backup jsonb)
+returns boolean
+language plpgsql
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'permission denied' using errcode = '42501';
+  end if;
+  if p_backup is null or p_backup ->> 'app' is distinct from 'efootball-tournament' then
+    raise exception 'INVALID_BACKUP' using errcode = '22023';
+  end if;
+  if jsonb_typeof(p_backup -> 'tournaments') is distinct from 'array'
+     or jsonb_typeof(p_backup -> 'players') is distinct from 'array'
+     or jsonb_typeof(p_backup -> 'matches') is distinct from 'array'
+     or jsonb_typeof(p_backup -> 'point_adjustments') is distinct from 'array' then
+    raise exception 'INVALID_BACKUP' using errcode = '22023';
+  end if;
+  if jsonb_array_length(p_backup -> 'tournaments') > 5000
+     or jsonb_array_length(p_backup -> 'players') > 5000
+     or jsonb_array_length(p_backup -> 'matches') > 5000
+     or jsonb_array_length(p_backup -> 'point_adjustments') > 5000 then
+    raise exception 'INVALID_BACKUP' using errcode = '22023';
+  end if;
+  if exists (select 1 from public.tournaments)
+     or exists (select 1 from public.players)
+     or exists (select 1 from public.matches)
+     or exists (select 1 from public.point_adjustments) then
+    raise exception 'IMPORT_REQUIRES_EMPTY_DATABASE' using errcode = 'P0001';
+  end if;
+
+  insert into public.tournaments (
+    id, name, season, description, rules, format, platform, prize, start_date, end_date,
+    max_players, registration_open, auto_approve, points_win, points_draw, points_loss,
+    is_published, is_active, created_at, updated_at
+  )
+  select id, name, season, description, rules, format, platform, prize, start_date, end_date,
+         max_players, registration_open, auto_approve, points_win, points_draw, points_loss,
+         is_published, is_active, created_at, updated_at
+    from jsonb_to_recordset(p_backup -> 'tournaments') as t(
+      id uuid, name text, season text, description text, rules text, format text, platform text,
+      prize text, start_date date, end_date date, max_players integer, registration_open boolean,
+      auto_approve boolean, points_win smallint, points_draw smallint, points_loss smallint,
+      is_published boolean, is_active boolean, created_at timestamptz, updated_at timestamptz
+    );
+
+  insert into public.players (
+    id, tournament_id, player_name, team_name, efootball_username, email, status, notes,
+    approved_at, created_at, updated_at, avatar_url
+  )
+  select id, tournament_id, player_name, team_name, efootball_username, email, status, notes,
+         approved_at, created_at, updated_at, avatar_url
+    from jsonb_to_recordset(p_backup -> 'players') as p(
+      id uuid, tournament_id uuid, player_name text, team_name text, efootball_username text,
+      email text, status text, notes text, approved_at timestamptz, created_at timestamptz,
+      updated_at timestamptz, avatar_url text
+    );
+
+  insert into public.matches (
+    id, tournament_id, round, scheduled_at, status, home_player_id, away_player_id,
+    home_score, away_score, venue, notes, created_at, updated_at
+  )
+  select id, tournament_id, round, scheduled_at, status, home_player_id, away_player_id,
+         home_score, away_score, venue, notes, created_at, updated_at
+    from jsonb_to_recordset(p_backup -> 'matches') as m(
+      id uuid, tournament_id uuid, round integer, scheduled_at timestamptz, status text,
+      home_player_id uuid, away_player_id uuid, home_score smallint, away_score smallint,
+      venue text, notes text, created_at timestamptz, updated_at timestamptz
+    );
+
+  insert into public.point_adjustments (id, tournament_id, player_id, points, reason)
+  select id, tournament_id, player_id, points, reason
+    from jsonb_to_recordset(p_backup -> 'point_adjustments') as a(
+      id uuid, tournament_id uuid, player_id uuid, points smallint, reason text
+    );
+
+  return true;
+end;
+$$;
+revoke execute on function public.import_backup(jsonb) from public, anon;
+
 -- Make the new tables and functions visible to the API immediately.
 notify pgrst, 'reload schema';

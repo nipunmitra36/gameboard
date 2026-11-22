@@ -142,15 +142,18 @@
             </div>
           </section>` : ''}`;
 
-      if (EF.backend === 'google_script') {
+      if (EF.backend === 'google_script' || EF.backend === 'supabase') {
+        const usesSupabase = EF.backend === 'supabase';
         const section = document.createElement('section');
         section.className = 'glass p-5 sm:p-6 mt-6';
         section.innerHTML = `
-          ${admin.panelHead('Move browser data to this Sheet', 'Export a backup from the browser that currently has your tournament data, then import it here.')}
-          <div class="form-alert form-alert--info mb-4">${ui.icon('info', '')}<span>Import replaces all tournament data in the Google Sheet. Use this only for your initial migration or when you intend to replace the Sheet data.</span></div>
+          ${admin.panelHead(usesSupabase ? 'Import browser backup to Supabase' : 'Move browser data to this Sheet', 'Export a backup from the browser that currently has your tournament data, then import it here.')}
+          <div class="form-alert form-alert--info mb-4">${ui.icon('info', '')}<span>${usesSupabase
+            ? 'Supabase import only works when its tournament tables are empty; existing data is never deleted.'
+            : 'Import replaces all tournament data in the Google Sheet. Use this only for your initial migration or when you intend to replace the Sheet data.'}</span></div>
           <div class="flex flex-wrap gap-3">
             <button type="button" class="btn btn-secondary btn-sm" data-local-export>${ui.icon('download', '')}Export this browser's local data</button>
-            <label class="btn btn-ghost btn-sm cursor-pointer">${ui.icon('upload', '')}Import backup to Sheet<input type="file" accept="application/json,.json" class="sr-only" data-sheet-import></label>
+            <label class="btn btn-ghost btn-sm cursor-pointer">${ui.icon('upload', '')}Import backup${usesSupabase ? ' to Supabase' : ' to Sheet'}<input type="file" accept="application/json,.json" class="sr-only" data-sheet-import></label>
           </div>`;
         el.querySelector('form[data-settings]').after(section);
 
@@ -172,11 +175,15 @@
           try {
             const backup = JSON.parse(await file.text());
             const ok = await ui.confirm({
-              title: 'Replace Sheet data?',
-              message: 'This replaces all tournaments, players, fixtures and point adjustments in the Google Sheet.',
+              title: usesSupabase ? 'Import backup into Supabase?' : 'Replace Sheet data?',
+              message: usesSupabase
+                ? 'This import only succeeds when Supabase has no tournament records. It will not overwrite or delete existing data.'
+                : 'This replaces all tournaments, players, fixtures and point adjustments in the Google Sheet.',
               confirmText: 'Import backup',
             });
-            if (ok) await admin.mutate(() => api.admin.importBackup(backup), { success: 'Data imported to the Google Sheet.' });
+            if (ok) await admin.mutate(() => api.admin.importBackup(backup), {
+              success: usesSupabase ? 'Data imported to Supabase.' : 'Data imported to the Google Sheet.',
+            });
           } catch (error) {
             ui.toast(error.message || 'Could not import that backup.', 'error');
           }

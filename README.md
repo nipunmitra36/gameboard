@@ -45,9 +45,9 @@ efootball/
 └── README.md
 ```
 
-## 2. Quick start: local mode (default, no SQL)
+## 2. Local mode (optional, no SQL)
 
-`assets/js/config.js` ships with `BACKEND: 'local'`. All data is stored in the browser's localStorage, with no database or SQL needed.
+Set `BACKEND: 'local'` in `assets/js/config.js` to use browser-only storage, with no database or SQL. The current configuration uses Supabase.
 
 1. Open `index.html`, either by double-clicking it or through a local server (see section 5). A published tournament is created automatically, so **Join Now** works straight away.
 2. **Admin login:** click **Admin Login** in the header, or open `controlleradmin/index.html`.
@@ -78,7 +78,7 @@ Keep the Sheet private because it stores registration email addresses. Apps Scri
 Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 
 1. **Create a project** at [supabase.com](https://supabase.com).
-2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run** (confirm the "destructive operation" prompt). It ends by listing the 5 tables, 2 views and 2 functions it created.
+2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run**. It ends by listing the 5 tables, 2 views and 3 functions it created.
    (`setup_all.sql` is simply `01_schema.sql` + `02_policies.sql` combined; you can run those two in order instead.) All files are safe to re-run.
 3. **Lock down sign-ups:** go to *Authentication → Sign In / Providers* and turn off **Allow new users to sign up**. Admin accounts are created by you, not by visitors.
 4. **Create the admin user:** go to *Authentication → Users → Add user*, enter an email and a strong password, and tick **Auto Confirm User**.
@@ -95,7 +95,9 @@ Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
    ```
    The anon key is designed to be public. **Never** put the `service_role` key in the frontend.
 
-7. **Create the tournament:** open `/controlleradmin`, sign in, go to **Settings**, fill in the details, switch on **Published**, then save. The public site comes alive immediately.
+7. **Create or migrate the tournament:** open `/controlleradmin` and sign in. To migrate this browser's data, use **Settings → Import browser backup to Supabase** before creating any records. The import is admin-only and refuses to run unless all tournament tables are empty; it never deletes existing Supabase data. Otherwise, create the tournament in **Settings**, switch on **Published**, and save.
+
+Before switching from local mode, download **Settings → Export backup (.json)** in the browser that contains the current data. The import also offers **Export this browser's local data** after switching.
 
 ## 5. Run locally
 

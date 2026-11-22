@@ -2,7 +2,7 @@
  * Runtime configuration.
  *
  * BACKEND
- *   'local'    — (default) everything is stored in this browser's localStorage.
+ *   'local'    — everything is stored in this browser's localStorage.
  *                No SQL, no server, no setup. Data is per-browser: registrations
  *                made on another device will NOT reach the admin. Use the admin
  *                Settings page to export / import backups.
@@ -23,7 +23,7 @@
  * NEVER put a secret / service_role key in this file.
  */
 window.EF_CONFIG = {
-  BACKEND: 'local',
+  BACKEND: 'supabase',
   APPS_SCRIPT_URL: '',
 
   ADMIN_USERNAME: 'admin',

@@ -17,6 +17,8 @@
     INVALID_AVATAR: 'That profile photo could not be used. Upload a JPG, PNG or WebP image.',
     MATCH_PLAYERS_INVALID: 'Both players must be approved players in this tournament.',
     ADJUSTMENT_PLAYER_INVALID: 'The selected player does not belong to this tournament.',
+    IMPORT_REQUIRES_EMPTY_DATABASE: 'Backup import only works when the Supabase tournament tables are empty. No existing records were changed.',
+    INVALID_BACKUP: 'This file is not a valid eFootball tournament backup.',
   };
 
   class AppError extends Error {
