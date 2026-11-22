@@ -1,4 +1,4 @@
-/* Player registration: one form, two mounts — the Join modal and the inline hero panel. */
+/* Player registration: one form, two mounts — the Join modal and the home page footer panel. */
 (function () {
   'use strict';
   window.EF = window.EF || {};
@@ -141,7 +141,7 @@
       bindForm(modal, t);
     },
 
-    /** Render the compact form inside a page element (e.g. the home hero). */
+    /** Render the compact form inside a page element (the home page footer). */
     mountInline(container, t) {
       const host = {
         body: container,
@@ -171,8 +171,8 @@
         const trigger = ev.target.closest('[data-action="join"]');
         if (!trigger) return;
         ev.preventDefault();
-        // On the home page the hero form is right there: focus it instead of opening a dialog.
-        const inline = document.querySelector('#hero-join-panel [data-reg-form]');
+        // On the home page, focus the inline form instead of opening a dialog.
+        const inline = document.querySelector('#home-join-panel [data-reg-form]');
         if (inline && inline.offsetParent !== null) {
           inline.scrollIntoView({ behavior: 'smooth', block: 'center' });
           setTimeout(() => inline.elements.player_name.focus({ preventScroll: true }), 350);

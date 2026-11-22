@@ -11,7 +11,7 @@
 insert into public.admin_users (user_id, email, display_name, role)
 select id, email, 'Tournament Admin', 'owner'
   from auth.users
- where lower(email) = lower('admin@example.com')   -- <-- change me
+ where lower(email) = lower('nipunmitra03@gmail.com')   -- <-- change me
 on conflict (user_id) do update
   set email = excluded.email,
       role  = excluded.role;
