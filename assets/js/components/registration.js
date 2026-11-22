@@ -1,4 +1,4 @@
-/* Player registration: one form, two mounts — the Join modal and the home page footer panel. */
+/* Player registration: one form, two mounts — the Join modal and the home page inline panel. */
 (function () {
   'use strict';
   window.EF = window.EF || {};
@@ -141,7 +141,7 @@
       bindForm(modal, t);
     },
 
-    /** Render the compact form inside a page element (the home page footer). */
+    /** Render the compact form inside a page element. */
     mountInline(container, t) {
       const host = {
         body: container,

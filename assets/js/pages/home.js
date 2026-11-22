@@ -1,4 +1,4 @@
-/* Home page: hero, footer registration, matches, results, top 4, players, championship, rules. */
+/* Home page: hero and registration, matches, results, top 4, players, championship, rules. */
 EF.boot(async function homePage() {
   'use strict';
   const { qs, escapeHtml: e, formatDate, formatTime } = EF.utils;

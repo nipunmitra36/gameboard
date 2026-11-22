@@ -62,25 +62,40 @@
       </svg>
 
       <div class="container-ef !max-w-[1400px] relative pt-10 pb-14 sm:pt-14 lg:pt-16 lg:pb-20">
-        <div class="max-w-3xl reveal">
-          <div class="flex flex-wrap items-center gap-3">
-            <span class="eyebrow" id="hero-season">Tournament Season</span>
-            <span id="hero-reg-chip"></span>
+        <div class="grid lg:grid-cols-[1.05fr_.95fr] items-center gap-8 xl:gap-16">
+          <div class="max-w-3xl reveal">
+            <div class="flex flex-wrap items-center gap-3">
+              <span class="eyebrow" id="hero-season">Tournament Season</span>
+              <span id="hero-reg-chip"></span>
+            </div>
+            <h1 id="hero-title" class="hero-title text-neon mt-4">
+              <span class="block skeleton h-[0.9em] w-4/5 rounded-xl"></span>
+            </h1>
+            <div id="hero-countdown" class="mt-4" hidden></div>
+            <p id="hero-desc" class="mt-4 text-[15px] sm:text-base text-soft max-w-lg leading-relaxed">
+              Register your squad, follow every fixture and watch the point table update the moment results land.
+            </p>
+            <div id="hero-meta" class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4"></div>
+            <div class="mt-8 flex flex-col sm:flex-row gap-3">
+              <button type="button" class="btn btn-primary btn-lg btn-arrow sm:min-w-[230px]" data-action="join" id="hero-join">Join Now<i data-lucide="chevron-right"></i></button>
+              <a href="fixtures.html" class="btn btn-outline btn-lg"><i data-lucide="calendar-days"></i>View Fixtures</a>
+            </div>
           </div>
-          <h1 id="hero-title" class="hero-title text-neon mt-4">
-            <span class="block skeleton h-[0.9em] w-4/5 rounded-xl"></span>
-          </h1>
-          <div id="hero-countdown" class="mt-4" hidden></div>
-          <p id="hero-desc" class="mt-4 text-[15px] sm:text-base text-soft max-w-lg leading-relaxed">
-            Register your squad, follow every fixture and watch the point table update the moment results land.
-          </p>
-          <div id="hero-meta" class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4"></div>
-          <div class="mt-8 flex flex-col sm:flex-row gap-3">
-            <button type="button" class="btn btn-primary btn-lg btn-arrow sm:min-w-[230px]" data-action="join" id="hero-join">Join Now<i data-lucide="chevron-right"></i></button>
-            <a href="fixtures.html" class="btn btn-outline btn-lg"><i data-lucide="calendar-days"></i>View Fixtures</a>
-          </div>
-        </div>
 
+          <section class="w-full max-w-xl mx-auto lg:mx-0 reveal scroll-mt-24" id="home-join-section" aria-labelledby="home-join-title">
+            <div class="text-center mb-5">
+              <span class="eyebrow">Compete</span>
+              <h2 class="section-title mt-2" id="home-join-title">Join Tournament</h2>
+              <p class="text-muted mt-3 leading-relaxed">Register your squad and take your place on the leaderboard.</p>
+              <span id="home-slots" class="text-xs text-soft"></span>
+            </div>
+            <div class="join-panel p-5 sm:p-6" id="home-join-panel-wrap">
+              <div id="home-join-panel">
+                <div class="grid gap-3"><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-14"></div></div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </section>
 
@@ -141,23 +156,6 @@
         </div>
         <div class="lg:col-span-8 glass p-5 sm:p-7">
           <ol id="rules-list"></ol>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= JOIN TOURNAMENT ================= -->
-    <section class="container-ef !max-w-[1400px] mt-16 scroll-mt-24" id="home-join-section" aria-labelledby="home-join-title">
-      <div class="max-w-3xl mx-auto">
-        <div class="text-center mb-6">
-          <span class="eyebrow">Compete</span>
-          <h2 class="section-title mt-2" id="home-join-title">Join Tournament</h2>
-          <p class="text-muted mt-4 leading-relaxed">Register your squad and take your place on the leaderboard.</p>
-          <span id="home-slots" class="text-xs text-soft"></span>
-        </div>
-        <div class="join-panel p-5 sm:p-6" id="home-join-panel-wrap">
-          <div id="home-join-panel">
-            <div class="grid gap-3"><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-14"></div></div>
-          </div>
         </div>
       </div>
     </section>
