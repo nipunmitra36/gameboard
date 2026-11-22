@@ -13,6 +13,8 @@ alter table public.point_adjustments enable row level security;
 -- ---------------------------------------------------------------------
 --  Table privileges (defence in depth on top of RLS)
 -- ---------------------------------------------------------------------
+grant usage on schema public to anon, authenticated;
+
 revoke insert, update, delete, truncate
   on public.tournaments, public.players, public.matches,
      public.admin_users, public.point_adjustments
@@ -27,6 +29,10 @@ revoke update, delete, truncate on public.point_adjustments from authenticated;
 revoke insert, update, delete, truncate on public.admin_users from authenticated;
 
 grant select on public.players_public, public.player_adjustment_totals to anon, authenticated;
+grant select on public.tournaments, public.matches to anon, authenticated;
+grant select, insert, update, delete on public.tournaments, public.players, public.matches to authenticated;
+grant select, insert on public.point_adjustments to authenticated;
+grant select on public.admin_users to authenticated;
 
 revoke execute on function public.register_player(text, text, text, text, text) from public;
 grant  execute on function public.register_player(text, text, text, text, text) to anon, authenticated;
