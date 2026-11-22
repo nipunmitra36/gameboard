@@ -18,7 +18,7 @@
   const siteName = () => (window.EF_CONFIG && window.EF_CONFIG.SITE_NAME) || 'Game Board';
 
   function headerHtml(page) {
-    const links = NAV.map((n) => `
+    const links = NAV.filter((n) => n.id !== 'profile').map((n) => `
       <a href="${n.href}" class="nav-link ${n.id === page ? 'is-active' : ''}" ${n.id === page ? 'aria-current="page"' : ''}>${ui.icon(n.icon, '')}${e(n.label)}</a>`).join('');
     const mobileLinks = NAV.map((n) => `
       <a href="${n.href}" class="mobile-link ${n.id === page ? 'is-active' : ''}" ${n.id === page ? 'aria-current="page"' : ''}>${ui.icon(n.icon, '')}${e(n.label)}</a>`).join('');
@@ -36,6 +36,7 @@
           <nav class="hidden xl:flex items-center gap-1" aria-label="Primary">${links}</nav>
           <div class="flex items-center gap-2">
             <button type="button" class="btn btn-primary btn-sm hidden sm:inline-flex" data-action="join">${ui.icon('trophy', '')}Join Tournament</button>
+            <a href="profile.html" class="btn ${page === 'profile' ? 'btn-primary' : 'btn-outline'} btn-sm hidden sm:inline-flex" ${page === 'profile' ? 'aria-current="page"' : ''}><span class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-white/10 bg-white/5">${ui.icon('user-round', '')}</span>My Profile</a>
             <a href="controlleradmin/index.html" class="btn btn-outline btn-sm hidden xl:inline-flex">${ui.icon('lock', '')}Admin Login</a>
             <button type="button" class="icon-btn xl:hidden" data-menu-toggle aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">${ui.icon('menu', '')}</button>
           </div>

@@ -211,9 +211,19 @@ EF.boot(async function profilePage() {
 
           <form class="border-t border-white/10 pt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" data-profile-update-form novalidate>
             <div>
-              <h3 class="font-display text-xl font-bold uppercase text-white">eFootball username</h3>
-              <p class="text-xs text-muted mt-1">This updates the username on all registrations linked to this verified email.</p>
-              <div class="mt-4">
+              <h3 class="font-display text-xl font-bold uppercase text-white">Player details</h3>
+              <p class="text-xs text-muted mt-1">Name, eFootball username and DP update across all registrations linked to this verified email.</p>
+              <div class="grid gap-4 md:grid-cols-2 mt-4">
+                ${ui.field({
+                  name: 'player_name',
+                  label: 'Player name',
+                  icon: 'user-round',
+                  placeholder: 'Your player name',
+                  value: activeRecord.player_name,
+                  required: true,
+                  maxlength: 60,
+                  autocomplete: 'name',
+                })}
                 ${ui.field({
                   name: 'efootball_username',
                   label: 'In-game username',
@@ -225,9 +235,15 @@ EF.boot(async function profilePage() {
                   autocomplete: 'nickname',
                 })}
               </div>
+              <div class="mt-4">${ui.photoField({
+                name: 'avatar_url',
+                value: activeRecord.avatar_url || '',
+                label: 'Profile photo (DP)',
+                playerName: activeRecord.player_name,
+              })}</div>
               <div data-form-alert hidden></div>
             </div>
-            <button type="submit" class="btn btn-primary">${ui.icon('save')}Save username</button>
+            <button type="submit" class="btn btn-primary">${ui.icon('save')}Save profile</button>
           </form>
 
           <section class="border-t border-white/10 pt-6">
@@ -245,18 +261,29 @@ EF.boot(async function profilePage() {
       root.querySelector('[data-profile-signout]').addEventListener('click', signOut);
       const form = root.querySelector('[data-profile-update-form]');
       ui.liveClear(form);
+      ui.bindPhotoFields(form);
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const username = String(form.elements.efootball_username.value || '').trim();
-        if (username.length < 3 || username.length > 40) {
-          ui.showErrors(form, { efootball_username: EF.api.MESSAGES.INVALID_USERNAME });
+        const values = ui.readForm(form);
+        const errors = EF.utils.validate(values, {
+          player_name: [
+            EF.utils.rules.required('Player name'),
+            EF.utils.rules.length('Player name', 2, 60),
+          ],
+          efootball_username: [
+            EF.utils.rules.required('eFootball username'),
+            EF.utils.rules.length('eFootball username', 3, 40),
+          ],
+        });
+        if (Object.keys(errors).length) {
+          ui.showErrors(form, errors);
           return;
         }
         const button = form.querySelector('[type="submit"]');
-        ui.setLoading(button, true, 'Saving username');
+        ui.setLoading(button, true, 'Saving profile');
         try {
-          const updatedCount = await EF.api.updateMyPlayerUsername(username);
-          ui.toast(`Username updated for ${plural(Number(updatedCount), 'registration')}.`, 'success');
+          const updatedCount = await EF.api.updateMyPlayerProfile(values);
+          ui.toast(`Profile updated for ${plural(Number(updatedCount), 'registration')}.`, 'success');
           await loadDashboard();
         } catch (err) {
           ui.setLoading(button, false);

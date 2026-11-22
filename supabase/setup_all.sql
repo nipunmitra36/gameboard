@@ -477,7 +477,13 @@ begin
 end;
 $$;
 
-create or replace function public.update_player_efootball_username(p_efootball_username text)
+drop function if exists public.update_player_efootball_username(text);
+
+create or replace function public.update_my_player_profile(
+  p_player_name text,
+  p_efootball_username text,
+  p_avatar_url text
+)
 returns integer
 language plpgsql
 security definer
@@ -485,6 +491,7 @@ set search_path = ''
 as $$
 declare
   v_email text;
+  v_player_name text := btrim(regexp_replace(coalesce(p_player_name, ''), '\s+', ' ', 'g'));
   v_username text := btrim(coalesce(p_efootball_username, ''));
   v_updated integer;
 begin
@@ -497,12 +504,25 @@ begin
     raise exception 'PLAYER_EMAIL_NOT_VERIFIED' using errcode = '42501';
   end if;
 
+  if char_length(v_player_name) not between 2 and 60 then
+    raise exception 'INVALID_PLAYER_NAME' using errcode = '22023';
+  end if;
+
   if char_length(v_username) not between 3 and 40 then
     raise exception 'INVALID_USERNAME' using errcode = '22023';
   end if;
 
+  if p_avatar_url is not null and (
+       char_length(p_avatar_url) > 300000
+       or p_avatar_url !~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$'
+     ) then
+    raise exception 'INVALID_AVATAR' using errcode = '22023';
+  end if;
+
   update public.players
-     set efootball_username = v_username
+     set player_name = v_player_name,
+         efootball_username = v_username,
+         avatar_url = p_avatar_url
    where lower(email) = v_email;
 
   get diagnostics v_updated = row_count;
@@ -515,7 +535,7 @@ end;
 $$;
 
 revoke execute on function public.get_my_player_profile() from public, anon;
-revoke execute on function public.update_player_efootball_username(text) from public, anon;
+revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
 
 -- Import a local-browser backup only into an empty database. The admin check
 -- and table constraints still apply; the function never deletes remote data.
@@ -663,8 +683,8 @@ grant  execute on function public.import_backup(jsonb) to authenticated;
 grant  execute on function public.is_admin() to anon, authenticated;
 revoke execute on function public.get_my_player_profile() from public, anon;
 grant  execute on function public.get_my_player_profile() to authenticated;
-revoke execute on function public.update_player_efootball_username(text) from public, anon;
-grant  execute on function public.update_player_efootball_username(text) to authenticated;
+revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
+grant  execute on function public.update_my_player_profile(text, text, text) to authenticated;
 
 -- ---------------------------------------------------------------------
 --  tournaments
@@ -839,6 +859,6 @@ select 'function', routine_name
   from information_schema.routines
  where routine_schema = 'public' and routine_name in (
    'register_player', 'is_admin', 'import_backup',
-   'get_my_player_profile', 'update_player_efootball_username'
+   'get_my_player_profile', 'update_my_player_profile'
  )
 order by 1, 2;

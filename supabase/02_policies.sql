@@ -44,8 +44,8 @@ grant  execute on function public.import_backup(jsonb) to authenticated;
 grant  execute on function public.is_admin() to anon, authenticated;
 revoke execute on function public.get_my_player_profile() from public, anon;
 grant  execute on function public.get_my_player_profile() to authenticated;
-revoke execute on function public.update_player_efootball_username(text) from public, anon;
-grant  execute on function public.update_player_efootball_username(text) to authenticated;
+revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
+grant  execute on function public.update_my_player_profile(text, text, text) to authenticated;
 
 -- ---------------------------------------------------------------------
 --  tournaments

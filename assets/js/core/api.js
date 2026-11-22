@@ -121,9 +121,13 @@
       return (await run(db().rpc('get_my_player_profile'))) || [];
     },
 
-    async updateMyPlayerUsername(username) {
-      return run(db().rpc('update_player_efootball_username', {
-        p_efootball_username: String(username || '').trim(),
+    async updateMyPlayerProfile(values) {
+      const avatar = String(values.avatar_url || '');
+      if (avatar && !EF.utils.isAvatarData(avatar)) throw new AppError('INVALID_AVATAR');
+      return run(db().rpc('update_my_player_profile', {
+        p_player_name: EF.utils.clean(values.player_name),
+        p_efootball_username: String(values.efootball_username || '').trim(),
+        p_avatar_url: avatar || null,
       }));
     },
 
