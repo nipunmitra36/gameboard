@@ -252,7 +252,7 @@ EF.boot(async function homePage() {
     const slide = (p, index, clone = false) => `
       <div class="player-carousel__slide" role="group" aria-label="Player ${index + 1} of ${latestPlayers.length}"${clone ? ' aria-hidden="true" inert' : ''}>
         <a href="players.html" class="player-card"${clone ? ' tabindex="-1"' : ''}>
-          ${ui.avatar(p, 'lg')}
+          ${ui.avatar(p, 'xl')}
           <p class="font-display text-lg font-extrabold text-white mt-3 truncate">${e(p.player_name)}</p>
           <p class="text-sm text-soft truncate">${e(p.team_name)}</p>
           <p class="status-dot mt-2 ${p.status === 'approved' ? 'text-[#4ade80]' : 'text-warn'}">${p.status === 'approved' ? 'Active' : 'Pending'}</p>

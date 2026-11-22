@@ -1260,9 +1260,13 @@ body::after {
 }
 
 /* Player cards */
-.player-card { text-align: center; padding: 18px 12px 16px; border-radius: 12px; background: rgba(8, 18, 70, 0.75); border: 1px solid rgba(110, 140, 255, 0.2); transition: transform 0.2s, border-color 0.2s; min-width: 0; }
-.player-card:hover { transform: translateY(-3px); border-color: rgba(var(--neon-rgb), 0.5); }
-.player-card .avatar { border-radius: 50%; margin: 0 auto; box-shadow: 0 0 0 3px rgba(var(--neon-rgb), 0.25), 0 8px 18px -8px #000; }
+.player-card { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 260px; text-align: center; padding: 24px 16px; border-radius: 16px; background: radial-gradient(240px 150px at 50% 0%, rgba(80, 120, 255, 0.26), transparent 75%), linear-gradient(160deg, rgba(16, 32, 112, 0.9), rgba(7, 15, 58, 0.96)); border: 1px solid rgba(140, 160, 255, 0.32); transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; min-width: 0; }
+.player-card::before { content: ''; position: absolute; inset: 8px; z-index: -1; border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 11px; pointer-events: none; }
+.player-card:hover { transform: translateY(-3px); border-color: rgba(var(--neon-rgb), 0.7); box-shadow: 0 16px 36px -24px rgba(var(--neon-rgb), 0.75); }
+.player-card .avatar { width: 96px; height: 96px; border: 3px solid rgba(var(--neon-rgb), 0.85); border-radius: 50%; margin: 0 auto; font-size: 30px; box-shadow: 0 0 0 5px rgba(var(--neon-rgb), 0.1), 0 12px 28px -12px #000; transition: box-shadow 0.2s, transform 0.2s; }
+.player-card:hover .avatar { transform: scale(1.04); box-shadow: 0 0 0 6px rgba(var(--neon-rgb), 0.16), 0 14px 32px -12px #000; }
+.player-card .status-dot { margin-top: 14px; padding: 5px 11px; border: 1px solid currentColor; border-radius: 999px; background: rgba(4, 10, 40, 0.6); font-size: 12px; }
+.player-card .status-dot::before { width: 7px; height: 7px; }
 .player-carousel { min-width: 0; }
 .player-carousel__viewport { overflow: hidden; }
 .player-carousel__track { display: flex; gap: 12px; transition: transform 0.5s ease; will-change: transform; }
