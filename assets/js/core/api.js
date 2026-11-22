@@ -55,6 +55,8 @@
         return 'You do not have permission to perform this action.';
       case 'PGRST116':
         return 'The requested record was not found.';
+      case 'PGRST205':
+        return 'Supabase is connected, but the public database tables are missing from its API schema. Run supabase/setup_all.sql in the Supabase SQL Editor, then reload the site.';
       default:
         break;
     }

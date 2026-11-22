@@ -184,6 +184,7 @@ The home hero uses the background video at `assets/img/Free Update Released on S
 | Symptom | Fix |
 |---|---|
 | Yellow "Setup required" bar | For Google Sheets, configure `APPS_SCRIPT_URL` and `BACKEND: 'google_script'` in `assets/js/config.js`; for Supabase, set its URL and anon key |
+| `PGRST205` / table missing from schema cache | Run `supabase/setup_all.sql` in the Supabase SQL Editor. If it already succeeded, run `notify pgrst, 'reload schema';` and check that `public` is an exposed schema |
 | Other browsers do not show local-mode data | Local mode stores data in that browser only. Set up Google Sheets or Supabase for shared data |
 | Site says "Season Loading" / no tournament | In admin **Settings**, make sure **Published** is on |
 | "This account is not authorised" on login | Run `03_admin_setup.sql` with that user's email |
