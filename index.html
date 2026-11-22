@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>eFootball Tournament</title>
+  <meta name="description" content="Official hub for our eFootball tournament: register, follow fixtures, live results and the point table.">
+  <meta name="theme-color" content="#04070f">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="assets/js/tailwind.config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body data-page="home" data-page-title="">
+  <a href="#main" class="skip-link">Skip to content</a>
+  <div id="site-header"></div>
+
+  <main id="main">
+    <svg width="0" height="0" class="absolute" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="cup-metal" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#7d8fc9"/><stop offset=".28" stop-color="#eef2ff"/><stop offset=".5" stop-color="#9fb0e6"/><stop offset=".72" stop-color="#ffffff"/><stop offset="1" stop-color="#6a7cbe"/>
+        </linearGradient>
+        <linearGradient id="cup-base" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2f9a"/><stop offset="1" stop-color="#071150"/></linearGradient>
+        <radialGradient id="cup-glow" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#8fa7ff" stop-opacity=".55"/><stop offset="1" stop-color="#8fa7ff" stop-opacity="0"/></radialGradient>
+      </defs>
+    </svg>
+    <!-- ================= HERO ================= -->
+    <section class="hero relative overflow-hidden" aria-labelledby="hero-title" data-hero>
+      <!-- Background video (source set in assets/js/config.js → HERO_VIDEO) -->
+      <div class="hero-media" aria-hidden="true">
+        <video class="hero-video" muted playsinline loop autoplay preload="metadata" disablepictureinpicture disableremoteplayback poster="assets/img/efootball_v550_keyvisual_4k-1024x576.png" data-hero-video></video>
+      </div>
+      <div class="hero-scrim" aria-hidden="true"></div>
+      <div class="stadium-lights"></div>
+      <div class="hero__glow w-[620px] h-[420px] -top-40 left-1/3 bg-[#3d6bff]/35"></div>
+      <span class="slash w-[14px] h-[520px] -left-6 top-32 opacity-90 hidden md:block"></span>
+      <span class="slash slash--soft w-[6px] h-[420px] left-10 top-56 hidden md:block"></span>
+      <span class="slash w-[10px] h-[200px] -left-3 -top-10 md:hidden"></span>
+      <span class="slash w-[10px] h-[300px] right-[34%] -top-24 hidden lg:block"></span>
+      <span class="slash slash--blue w-[22px] h-[380px] right-[30%] -top-20 hidden lg:block"></span>
+      <span class="slash slash--soft w-[8px] h-[460px] -right-2 top-40 hidden md:block"></span>
+
+      <!-- Original trophy artwork -->
+      <button type="button" class="hero-video-toggle" data-hero-video-toggle hidden aria-label="Pause background video"><i data-lucide="pause"></i></button>
+      <svg class="trophy-art hero-trophy absolute hidden xl:block left-[50%] -translate-x-[38%] bottom-[-30px] w-[340px] h-[430px] opacity-90" viewBox="0 0 340 430" aria-hidden="true">
+        <ellipse cx="170" cy="170" rx="170" ry="170" fill="url(#cup-glow)"/>
+        <path d="M78 52h184c0 92-30 150-92 168-62-18-92-76-92-168z" fill="url(#cup-metal)"/>
+        <path d="M78 64c-46 0-58 30-52 58 8 38 44 56 74 62l4-16c-24-6-52-20-58-48-4-20 6-36 34-36z" fill="url(#cup-metal)"/>
+        <path d="M262 64c46 0 58 30 52 58-8 38-44 56-74 62l-4-16c24-6 52-20 58-48 4-20-6-36-34-36z" fill="url(#cup-metal)"/>
+        <ellipse cx="170" cy="52" rx="92" ry="14" fill="#c8d3ff"/>
+        <ellipse cx="170" cy="52" rx="80" ry="9" fill="#5d6fb6"/>
+        <path d="M150 218h40l-6 52h-28z" fill="url(#cup-metal)"/>
+        <path d="M120 270h100l12 34H108z" fill="url(#cup-metal)"/>
+        <rect x="96" y="304" width="148" height="70" rx="6" fill="url(#cup-base)" stroke="#d4ff1a" stroke-width="2"/>
+        <path d="m170 112 9 18 20 3-14 14 3 20-18-9-18 9 3-20-14-14 20-3z" fill="#d4ff1a"/>
+        <rect x="128" y="328" width="84" height="6" rx="3" fill="#d4ff1a" opacity=".85"/>
+        <rect x="140" y="344" width="60" height="4" rx="2" fill="#8fa7ff" opacity=".7"/>
+      </svg>
+
+      <div class="container-ef !max-w-[1400px] relative pt-10 pb-14 sm:pt-14 lg:pt-16 lg:pb-20 grid lg:grid-cols-12 gap-10 items-center">
+        <div class="lg:col-span-7 xl:col-span-6 reveal">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="eyebrow" id="hero-season">Tournament Season</span>
+            <span id="hero-reg-chip"></span>
+          </div>
+          <h1 id="hero-title" class="hero-title text-neon mt-4">
+            <span class="block skeleton h-[0.9em] w-4/5 rounded-xl"></span>
+          </h1>
+          <p class="hero-tagline mt-4">Play<span class="dot"></span>Compete<span class="dot"></span>Win</p>
+          <p id="hero-desc" class="mt-4 text-[15px] sm:text-base text-soft max-w-lg leading-relaxed">
+            Register your squad, follow every fixture and watch the point table update the moment results land.
+          </p>
+          <div id="hero-meta" class="mt-7 flex flex-wrap items-center gap-x-6 gap-y-4"></div>
+          <div class="mt-8 flex flex-col sm:flex-row gap-3">
+            <button type="button" class="btn btn-primary btn-lg btn-arrow sm:min-w-[230px]" data-action="join" id="hero-join">Join Now<i data-lucide="chevron-right"></i></button>
+            <a href="fixtures.html" class="btn btn-outline btn-lg"><i data-lucide="calendar-days"></i>View Fixtures</a>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 xl:col-start-9 xl:col-span-4 reveal reveal-2">
+          <div class="join-panel p-5 sm:p-6" id="hero-join-panel-wrap">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h2 class="font-display text-[28px] font-extrabold text-neon leading-none">Join Tournament</h2>
+              <span id="hero-slots" class="text-xs text-soft"></span>
+            </div>
+            <div id="hero-join-panel">
+              <div class="grid gap-3"><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-12"></div><div class="skeleton h-14"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MATCHES / RESULTS / TABLE ================= -->
+    <section class="container-ef !max-w-[1400px] mt-8 grid md:grid-cols-2 xl:grid-cols-3 gap-5" aria-label="Tournament overview">
+      <div class="glass p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="panel-title"><i data-lucide="calendar-days"></i>Upcoming Matches</h2>
+          <a href="fixtures.html#upcoming" class="view-all">View All<i data-lucide="arrow-right"></i></a>
+        </div>
+        <div id="home-upcoming" class="grid gap-2.5" aria-live="polite"></div>
+      </div>
+      <div class="glass p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="panel-title"><i data-lucide="trophy"></i>Recent Results</h2>
+          <a href="fixtures.html#completed" class="view-all">View All<i data-lucide="arrow-right"></i></a>
+        </div>
+        <div id="home-results" class="grid gap-2.5" aria-live="polite"></div>
+      </div>
+      <div class="glass p-4 sm:p-5 md:col-span-2 xl:col-span-1">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="panel-title" id="table-title"><i data-lucide="bar-chart-3"></i>Point Table <span class="text-soft font-bold text-lg">(Top 4)</span></h2>
+          <a href="standings.html" class="view-all">View All<i data-lucide="arrow-right"></i></a>
+        </div>
+        <div class="rounded-xl overflow-hidden border border-white/5" id="home-table"></div>
+      </div>
+    </section>
+
+    <!-- ================= PLAYERS + CHAMPIONSHIP ================= -->
+    <section class="container-ef !max-w-[1400px] mt-5 grid lg:grid-cols-[1.08fr_1fr] gap-5">
+      <div class="glass p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="panel-title"><i data-lucide="users"></i>Registered Players</h2>
+          <a href="players.html" class="view-all"><span id="players-total">Total: —</span><i data-lucide="arrow-right"></i></a>
+        </div>
+        <div id="home-players" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+      </div>
+
+      <div class="champ-banner min-h-[230px] flex items-center">
+        <div class="champ-banner__stripes"></div>
+        <img class="champ-banner__art" src="assets/img/efootball_v550_keyvisual_4k-1024x576.png" alt="" aria-hidden="true">
+        <div class="relative z-10 px-6 sm:px-10 py-8 max-w-[62%] sm:max-w-[60%]">
+          <p class="champ-title" id="champ-name">Championship</p>
+          <p class="font-display text-xl sm:text-2xl font-extrabold text-white mt-2 leading-tight">Be the champion of this tournament!</p>
+          <a href="#rules" class="btn btn-primary btn-arrow mt-5">View Rules<i data-lucide="chevron-right"></i></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RULES ================= -->
+    <section class="container-ef !max-w-[1400px] mt-16 scroll-mt-24" id="rules" aria-labelledby="rules-title">
+      <div class="grid lg:grid-cols-12 gap-8">
+        <div class="lg:col-span-4">
+          <span class="eyebrow">Fair play</span>
+          <h2 id="rules-title" class="section-title mt-2">Tournament Rules</h2>
+          <p class="text-muted mt-4 leading-relaxed">Every player agrees to these rules on registration. Admin decisions are final.</p>
+          <div class="mt-6 flex flex-wrap gap-2" id="rules-points"></div>
+        </div>
+        <div class="lg:col-span-8 glass p-5 sm:p-7">
+          <ol id="rules-list"></ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/core/utils.js"></script>
+  <script src="assets/js/core/local-db.js"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/core/ui.js"></script>
+  <script src="assets/js/core/standings.js"></script>
+  <script src="assets/js/core/api.js"></script>
+  <script src="assets/js/core/layout.js"></script>
+  <script src="assets/js/components/registration.js"></script>
+  <script src="assets/js/pages/home.js"></script>
+</body>
+</html>

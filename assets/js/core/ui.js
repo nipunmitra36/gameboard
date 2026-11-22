@@ -1,0 +1,559 @@
+/* Reusable UI building blocks: icons, toasts, modals, states, badges, forms, renderers. */
+(function () {
+  'use strict';
+  window.EF = window.EF || {};
+  const { escapeHtml: e, initials, hue, formatTime, formatDate, relativeDay } = EF.utils;
+
+  const ui = {};
+
+  /* ---------------- Icons ---------------- */
+  ui.icons = function () {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+  };
+  ui.icon = (name, cls = 'w-4 h-4') => `<i data-lucide="${name}" class="${cls}" aria-hidden="true"></i>`;
+
+  // Each logo gets its own gradient id: a shared id breaks when the first copy is hidden.
+  let logoCount = 0;
+  ui.logo = (size = 38) => {
+    logoCount += 1;
+    const g = `ef-logo-g${logoCount}`;
+    return `
+    <svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true" class="shrink-0 drop-shadow-[0_0_10px_rgba(212, 255, 26,0.35)]">
+      <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d4ff1a"/><stop offset="1" stop-color="#3d6bff"/></linearGradient></defs>
+      <circle cx="20" cy="20" r="17" fill="#0b1326" stroke="url(#${g})" stroke-width="2"/>
+      <path d="m20 11 6 4.4-2.3 7.1h-7.4L14 15.4z" fill="url(#${g})"/>
+      <path d="m20 11 0-7m6 11.4 8.6-3m-10.9 10.1 5.3 8.3m-12.7-8.3L11 30.8M14 15.4l-8.6-3" fill="none" stroke="url(#${g})" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  };
+
+  /* ---------------- Toasts ---------------- */
+  let toastStack = null;
+  ui.toast = function (message, type = 'info', { title, timeout = 4800 } = {}) {
+    if (!toastStack) {
+      toastStack = document.createElement('div');
+      toastStack.className = 'toast-stack';
+      toastStack.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toastStack);
+    }
+    const iconFor = { success: 'circle-check', error: 'triangle-alert', warning: 'circle-alert', info: 'info' };
+    const el = document.createElement('div');
+    el.className = `toast toast--${type}`;
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    el.innerHTML = `
+      <span class="toast__icon">${ui.icon(iconFor[type] || 'info')}</span>
+      <div class="flex-1 min-w-0">
+        ${title ? `<p class="font-semibold text-white text-sm">${e(title)}</p>` : ''}
+        <p class="text-sm text-soft break-words">${e(message)}</p>
+      </div>
+      <button type="button" class="toast__close" aria-label="Dismiss notification">${ui.icon('x')}</button>`;
+    toastStack.appendChild(el);
+    // Keep at most three toasts on screen.
+    const live = toastStack.querySelectorAll('.toast:not(.is-leaving)');
+    if (live.length > 3) live[0].remove();
+    ui.icons();
+    const remove = () => {
+      if (el.classList.contains('is-leaving')) return;
+      el.classList.add('is-leaving');
+      setTimeout(() => el.remove(), 260);
+    };
+    el.querySelector('.toast__close').addEventListener('click', remove);
+    if (timeout) setTimeout(remove, timeout);
+  };
+
+  /* ---------------- Modal ---------------- */
+  let openModals = 0;
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+  ui.modal = function ({ title = '', body = '', size = 'md', dismissible = true, onClose } = {}) {
+    const id = `modal-${Math.random().toString(36).slice(2, 8)}`;
+    const root = document.createElement('div');
+    root.className = 'ef-modal';
+    root.innerHTML = `
+      <div class="ef-modal__backdrop" ${dismissible ? 'data-close' : ''}></div>
+      <div class="ef-modal__panel ef-modal__panel--${size}" role="dialog" aria-modal="true" aria-labelledby="${id}-title" tabindex="-1">
+        <div class="ef-modal__head">
+          <h2 id="${id}-title" class="font-display text-xl sm:text-2xl font-bold uppercase tracking-wide text-white">${e(title)}</h2>
+          ${dismissible ? `<button type="button" class="icon-btn" data-close aria-label="Close dialog">${ui.icon('x')}</button>` : ''}
+        </div>
+        <div class="ef-modal__body"></div>
+      </div>`;
+
+    const panel = root.querySelector('.ef-modal__panel');
+    const bodyEl = root.querySelector('.ef-modal__body');
+    if (typeof body === 'string') bodyEl.innerHTML = body;
+    else if (body) bodyEl.appendChild(body);
+
+    const previousFocus = document.activeElement;
+    let closed = false;
+
+    const onKey = (ev) => {
+      if (ev.key === 'Escape' && dismissible) { ev.stopPropagation(); close(); }
+      if (ev.key === 'Tab') {
+        const items = Array.from(root.querySelectorAll(FOCUSABLE)).filter((x) => x.offsetParent !== null);
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+        else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+      }
+    };
+
+    function close() {
+      if (closed) return;
+      closed = true;
+      root.removeEventListener('keydown', onKey);
+      root.classList.add('is-closing');
+      setTimeout(() => {
+        root.remove();
+        openModals = Math.max(0, openModals - 1);
+        if (!openModals) document.body.classList.remove('modal-open');
+        if (previousFocus && typeof previousFocus.focus === 'function' && previousFocus.isConnected) previousFocus.focus();
+        if (onClose) onClose();
+      }, 170);
+    }
+
+    root.addEventListener('click', (ev) => { if (ev.target.closest('[data-close]')) close(); });
+    root.addEventListener('keydown', onKey);
+    document.body.appendChild(root);
+    openModals += 1;
+    document.body.classList.add('modal-open');
+    ui.icons();
+
+    const focusInitial = () => {
+      const fine = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
+      const firstInput = fine && root.querySelector('.ef-modal__body input:not([type="hidden"]):not([tabindex="-1"]), .ef-modal__body select, .ef-modal__body textarea');
+      (firstInput || panel).focus();
+    };
+    requestAnimationFrame(focusInitial);
+
+    return {
+      el: root,
+      body: bodyEl,
+      close,
+      isOpen: () => !closed,
+      setBody(html) { bodyEl.innerHTML = html; ui.icons(); requestAnimationFrame(focusInitial); },
+    };
+  };
+
+  ui.confirm = function ({ title = 'Are you sure?', message = '', confirmText = 'Confirm', cancelText = 'Cancel', tone = 'danger' } = {}) {
+    return new Promise((resolve) => {
+      let confirmed = false;
+      const m = ui.modal({
+        title,
+        size: 'sm',
+        onClose: () => resolve(confirmed),
+        body: `
+          <p class="text-soft leading-relaxed">${e(message)}</p>
+          <div class="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <button type="button" class="btn btn-ghost" data-close>${e(cancelText)}</button>
+            <button type="button" class="btn ${tone === 'danger' ? 'btn-danger' : 'btn-primary'}" data-confirm>${e(confirmText)}</button>
+          </div>`,
+      });
+      m.body.querySelector('[data-confirm]').addEventListener('click', () => { confirmed = true; m.close(); });
+    });
+  };
+
+  /* ---------------- Loading / empty / error states ---------------- */
+  ui.state = {
+    loading(label = 'Loading') {
+      return `<div class="state" role="status"><span class="spinner"></span><p class="text-sm text-muted mt-3">${e(label)}…</p></div>`;
+    },
+    skeleton(count = 3, height = 'h-20') {
+      return `<div class="grid gap-3" aria-hidden="true">${Array.from({ length: count }, () => `<div class="skeleton ${height}"></div>`).join('')}</div>`;
+    },
+    empty({ icon = 'inbox', title = 'Nothing here yet', message = '', action = '' } = {}) {
+      return `
+        <div class="state">
+          <div class="state__icon">${ui.icon(icon)}</div>
+          <p class="font-display text-lg font-bold uppercase tracking-wide text-white mt-4">${e(title)}</p>
+          ${message ? `<p class="text-sm text-muted mt-1.5 max-w-sm mx-auto leading-relaxed">${e(message)}</p>` : ''}
+          ${action ? `<div class="mt-5 flex justify-center">${action}</div>` : ''}
+        </div>`;
+    },
+    error({ message = 'Something went wrong.', retry = true } = {}) {
+      return `
+        <div class="state state--error" role="alert">
+          <div class="state__icon">${ui.icon('wifi-off')}</div>
+          <p class="font-display text-lg font-bold uppercase tracking-wide text-white mt-4">Could not load data</p>
+          <p class="text-sm text-muted mt-1.5 max-w-md mx-auto leading-relaxed">${e(message)}</p>
+          ${retry ? `<button type="button" class="btn btn-ghost btn-sm mt-5" data-retry>${ui.icon('rotate-cw')}Try again</button>` : ''}
+        </div>`;
+    },
+  };
+
+  // Any [data-retry] button re-runs the current page's loader.
+  document.addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-retry]')) document.dispatchEvent(new CustomEvent('ef:retry'));
+  });
+
+  /* ---------------- Badges & avatars ---------------- */
+  const MATCH_STATUS = {
+    upcoming: { label: 'Upcoming', cls: 'badge--upcoming', icon: 'clock' },
+    live: { label: 'Live', cls: 'badge--live' },
+    completed: { label: 'Completed', cls: 'badge--completed', icon: 'check' },
+    postponed: { label: 'Postponed', cls: 'badge--postponed', icon: 'pause' },
+  };
+  const PLAYER_STATUS = {
+    pending: { label: 'Pending', cls: 'badge--pending', icon: 'hourglass' },
+    approved: { label: 'Approved', cls: 'badge--approved', icon: 'badge-check' },
+    rejected: { label: 'Rejected', cls: 'badge--rejected', icon: 'circle-x' },
+  };
+  ui.MATCH_STATUS = MATCH_STATUS;
+  ui.PLAYER_STATUS = PLAYER_STATUS;
+
+  ui.matchStatusBadge = (status) => {
+    const s = MATCH_STATUS[status] || MATCH_STATUS.upcoming;
+    return `<span class="badge ${s.cls}">${status === 'live' ? '<span class="live-dot"></span>' : ui.icon(s.icon, '')}${s.label}</span>`;
+  };
+
+  ui.playerStatusBadge = (status) => {
+    const s = PLAYER_STATUS[status] || PLAYER_STATUS.pending;
+    return `<span class="badge ${s.cls}">${ui.icon(s.icon, '')}${s.label}</span>`;
+  };
+
+  /** Player avatar: their uploaded photo (DP) when present, otherwise coloured initials. Accepts a player object or a name. */
+  ui.avatar = (who, size = 'md') => {
+    const sizes = { sm: 'w-8 h-8 text-xs rounded-[10px]', md: 'w-10 h-10 text-sm', lg: 'w-14 h-14 text-lg', xl: 'w-20 h-20 text-2xl rounded-2xl' };
+    const isObj = who && typeof who === 'object';
+    const name = isObj ? who.player_name : who;
+    const photo = isObj ? who.avatar_url : null;
+    if (EF.utils.isAvatarData(photo)) {
+      return `<img src="${photo}" alt="" class="avatar avatar--photo ${sizes[size] || sizes.md}" loading="lazy" decoding="async">`;
+    }
+    return `<span class="avatar ${sizes[size] || sizes.md}" style="--h:${hue(name)}" aria-hidden="true">${e(initials(name))}</span>`;
+  };
+
+  /** Profile-photo picker: preview + upload/remove. Value lives in a hidden input named `name`. */
+  ui.photoField = ({ name = 'avatar_url', value = '', label = 'Profile Photo (DP)', playerName = '' } = {}) => {
+    const has = EF.utils.isAvatarData(value);
+    return `
+      <div class="photo-field" data-photo-field>
+        <span class="photo-field__preview" data-photo-preview>${has ? `<img src="${value}" alt="Profile photo preview">` : ui.icon('camera', '')}</span>
+        <div class="min-w-0 flex-1">
+          <p class="photo-field__label">${e(label)} <span class="text-subtle font-normal">(optional)</span></p>
+          <div class="flex flex-wrap gap-2 mt-1.5">
+            <label class="btn btn-ghost btn-xs cursor-pointer">${ui.icon('upload', '')}<span data-photo-cta>${has ? 'Change photo' : 'Upload photo'}</span>
+              <input type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" data-photo-input aria-label="Upload profile photo${playerName ? ` for ${e(playerName)}` : ''}">
+            </label>
+            <button type="button" class="btn btn-ghost btn-xs" data-photo-remove ${has ? '' : 'hidden'}>${ui.icon('x', '')}Remove</button>
+          </div>
+          <p class="text-[11px] text-subtle mt-1">JPG, PNG or WebP · max 5 MB · cropped to a square</p>
+          <p class="field-error" data-error-for="${name}" hidden></p>
+        </div>
+        <input type="hidden" name="${name}" value="${has ? value : ''}">
+      </div>`;
+  };
+
+  /** Wire up every photo field inside root (call after rendering a form). */
+  ui.bindPhotoFields = (root) => {
+    root.querySelectorAll('[data-photo-field]').forEach((field) => {
+      const input = field.querySelector('[data-photo-input]');
+      const hidden = field.querySelector('input[type="hidden"]');
+      const preview = field.querySelector('[data-photo-preview]');
+      const remove = field.querySelector('[data-photo-remove]');
+      const cta = field.querySelector('[data-photo-cta]');
+      const error = field.querySelector('.field-error');
+      const set = (dataUrl) => {
+        hidden.value = dataUrl || '';
+        preview.innerHTML = dataUrl ? `<img src="${dataUrl}" alt="Profile photo preview">` : ui.icon('camera', '');
+        remove.hidden = !dataUrl;
+        cta.textContent = dataUrl ? 'Change photo' : 'Upload photo';
+        ui.icons();
+      };
+      input.addEventListener('change', async () => {
+        const file = input.files && input.files[0];
+        input.value = '';
+        if (!file) return;
+        error.hidden = true;
+        preview.innerHTML = '<span class="spinner spinner--sm"></span>';
+        try {
+          set(await EF.utils.imageToAvatar(file));
+        } catch (err) {
+          set(hidden.value);
+          error.textContent = err.message;
+          error.hidden = false;
+        }
+      });
+      remove.addEventListener('click', () => set(''));
+    });
+  };
+
+  /* ---------------- Forms ---------------- */
+  ui.field = function ({
+    name, label, type = 'text', icon, placeholder = '', value = '', required = false,
+    maxlength, min, max, step, autocomplete, as = 'input', options = [], hint, rows = 4, attrs = '',
+  }) {
+    const id = `f-${name}-${Math.random().toString(36).slice(2, 7)}`;
+    const common = `id="${id}" name="${name}" ${required ? 'required aria-required="true"' : ''} ${attrs}`;
+    let control;
+    if (as === 'select') {
+      control = `<select ${common} class="select">${options.map((o) => `
+        <option value="${e(o.value)}" ${String(o.value) === String(value ?? '') ? 'selected' : ''} ${o.disabled ? 'disabled' : ''}>${e(o.label)}</option>`).join('')}
+      </select>`;
+    } else if (as === 'textarea') {
+      control = `<textarea ${common} class="textarea" rows="${rows}" placeholder="${e(placeholder)}" ${maxlength ? `maxlength="${maxlength}"` : ''}>${e(value ?? '')}</textarea>`;
+    } else {
+      control = `<input ${common} type="${type}" class="input ${icon ? 'has-icon' : ''}" value="${e(value ?? '')}" placeholder="${e(placeholder)}"
+        ${maxlength ? `maxlength="${maxlength}"` : ''} ${min !== undefined ? `min="${min}"` : ''} ${max !== undefined ? `max="${max}"` : ''}
+        ${step !== undefined ? `step="${step}"` : ''} ${autocomplete ? `autocomplete="${autocomplete}"` : ''}>`;
+    }
+    return `
+      <div class="field" data-field="${name}">
+        ${label ? `<label class="label" for="${id}">${e(label)}${required ? '<span class="text-neon ml-0.5">*</span>' : ''}</label>` : ''}
+        <div class="relative">
+          ${icon && as === 'input' ? `<span class="input-icon">${ui.icon(icon, '')}</span>` : ''}
+          ${control}
+        </div>
+        ${hint ? `<p class="text-xs text-subtle mt-1.5">${e(hint)}</p>` : ''}
+        <p class="field-error" id="${id}-error" data-error-for="${name}" hidden></p>
+      </div>`;
+  };
+
+  ui.switchField = ({ name, label, description = '', checked = false }) => `
+    <label class="switch-row">
+      <span class="min-w-0">
+        <span class="block font-semibold text-white text-sm">${e(label)}</span>
+        ${description ? `<span class="block text-xs text-muted mt-1 leading-relaxed">${e(description)}</span>` : ''}
+      </span>
+      <span class="switch"><input type="checkbox" name="${name}" ${checked ? 'checked' : ''}><span class="switch__track"></span></span>
+    </label>`;
+
+  ui.readForm = function (form) {
+    const out = {};
+    Array.from(form.elements).forEach((el) => {
+      if (!el.name) return;
+      out[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    return out;
+  };
+
+  ui.clearErrors = function (form) {
+    form.querySelectorAll('.is-invalid').forEach((el) => {
+      el.classList.remove('is-invalid');
+      el.removeAttribute('aria-invalid');
+    });
+    form.querySelectorAll('[data-error-for]').forEach((slot) => { slot.hidden = true; slot.textContent = ''; });
+  };
+
+  ui.showErrors = function (form, errors) {
+    ui.clearErrors(form);
+    let first = null;
+    Object.entries(errors).forEach(([name, message]) => {
+      const control = form.elements[name];
+      const slot = form.querySelector(`[data-error-for="${name}"]`);
+      if (control && control.classList) {
+        control.classList.add('is-invalid');
+        control.setAttribute('aria-invalid', 'true');
+        if (slot && slot.id) control.setAttribute('aria-describedby', slot.id);
+        first = first || control;
+      }
+      if (slot) { slot.textContent = message; slot.hidden = false; }
+    });
+    if (first) first.focus();
+  };
+
+  /** Clear a field's error as soon as the user edits it. */
+  ui.liveClear = function (form) {
+    form.addEventListener('input', (ev) => {
+      const el = ev.target;
+      if (!el.name || !el.classList.contains('is-invalid')) return;
+      el.classList.remove('is-invalid');
+      el.removeAttribute('aria-invalid');
+      const slot = form.querySelector(`[data-error-for="${el.name}"]`);
+      if (slot) slot.hidden = true;
+    });
+  };
+
+  ui.formAlert = function (form, message, type = 'error') {
+    const box = form.querySelector('[data-form-alert]');
+    if (!box) return;
+    if (!message) { box.hidden = true; box.innerHTML = ''; return; }
+    const icon = { error: 'triangle-alert', success: 'circle-check', info: 'info' }[type] || 'info';
+    box.className = `form-alert form-alert--${type}`;
+    box.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    box.innerHTML = `${ui.icon(icon, '')}<span>${e(message)}</span>`;
+    box.hidden = false;
+    ui.icons();
+  };
+
+  ui.setLoading = function (button, loading, label = 'Please wait') {
+    if (!button) return;
+    if (loading) {
+      if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+      button.innerHTML = `<span class="spinner spinner--sm"></span>${e(label)}`;
+    } else {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+      if (button.dataset.originalHtml) {
+        button.innerHTML = button.dataset.originalHtml;
+        delete button.dataset.originalHtml;
+      }
+      ui.icons();
+    }
+  };
+
+  /* ---------------- Shared renderers ---------------- */
+  const hasScore = (m) => Number.isInteger(m.home_score) && Number.isInteger(m.away_score)
+    && (m.status === 'completed' || m.status === 'live');
+
+  ui.matchResultText = function (m) {
+    if (m.status === 'completed' && hasScore(m)) {
+      if (m.home_score > m.away_score) return `${m.home ? m.home.player_name : 'Home'} won`;
+      if (m.away_score > m.home_score) return `${m.away ? m.away.player_name : 'Away'} won`;
+      return 'Draw';
+    }
+    if (m.status === 'live') return 'In progress';
+    if (m.status === 'postponed') return 'Postponed';
+    return 'Not played yet';
+  };
+
+  ui.matchCard = function (m) {
+    const scored = hasScore(m);
+    const homeWin = scored && m.status === 'completed' && m.home_score > m.away_score;
+    const awayWin = scored && m.status === 'completed' && m.away_score > m.home_score;
+
+    const side = (player, winner, alignRight) => `
+      <div class="flex items-center gap-3 min-w-0 ${alignRight ? 'flex-row-reverse text-right' : ''}">
+        <span class="hidden min-[400px]:inline-flex">${ui.avatar(player || 'TBD')}</span>
+        <div class="min-w-0">
+          <p class="font-display text-[17px] sm:text-lg font-bold leading-tight truncate ${winner ? 'text-neon' : 'text-white'}">${e(player ? player.player_name : 'TBD')}</p>
+          <p class="text-xs text-muted truncate">${e(player ? player.team_name : '—')}</p>
+        </div>
+      </div>`;
+
+    const centre = scored
+      ? `<div class="scoreline ${m.status === 'live' ? 'is-live' : ''}" aria-label="Score ${m.home_score} to ${m.away_score}"><span>${m.home_score}</span><span class="scoreline__sep">:</span><span>${m.away_score}</span></div>`
+      : `<div class="text-center px-1"><p class="vs">VS</p><p class="text-[11px] text-muted mt-0.5 whitespace-nowrap">${e(formatTime(m.scheduled_at))}</p></div>`;
+
+    const resultTone = m.status === 'completed' ? 'text-neon' : m.status === 'live' ? 'text-danger' : m.status === 'postponed' ? 'text-warn' : 'text-muted';
+    const day = relativeDay(m.scheduled_at) || formatDate(m.scheduled_at);
+
+    return `
+      <article class="match-card glass card p-4 sm:p-5 status-${e(m.status)}">
+        <header class="flex items-center justify-between gap-3">
+          <span class="text-[11px] font-semibold uppercase tracking-[.16em] text-muted truncate">
+            ${m.round ? `Round ${e(m.round)}` : 'Fixture'}${m.venue ? ` · ${e(m.venue)}` : ''}
+          </span>
+          ${ui.matchStatusBadge(m.status)}
+        </header>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4 mt-4">
+          ${side(m.home, homeWin, false)}
+          ${centre}
+          ${side(m.away, awayWin, true)}
+        </div>
+        <footer class="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
+          <span class="inline-flex items-center gap-1.5">${ui.icon('calendar', 'w-3.5 h-3.5')}<span>${e(day)}</span></span>
+          <span class="inline-flex items-center gap-1.5">${ui.icon('clock', 'w-3.5 h-3.5')}<span>${e(formatTime(m.scheduled_at))}</span></span>
+          <span class="inline-flex items-center gap-1.5 ml-auto font-semibold ${resultTone}">${ui.icon('flag', 'w-3.5 h-3.5')}<span>${e(ui.matchResultText(m))}</span></span>
+        </footer>
+      </article>`;
+  };
+
+  ui.formPills = (form) => (form && form.length
+    ? `<span class="form-pills">${form.map((r) => `<span class="form-pill form-${r}" title="${{ W: 'Win', D: 'Draw', L: 'Loss' }[r]}">${r}</span>`).join('')}</span>`
+    : '<span class="text-subtle">—</span>');
+
+  /** Tight table for narrow panels: Pos, Player, MP, W, D, L, GD, Pts. */
+  ui.miniStandingsTable = function (rows, { limit = 4 } = {}) {
+    const gd = (n) => (n > 0 ? `+${n}` : String(n));
+    return `
+      <div class="table-wrap">
+        <table class="ef-table ef-table--tight">
+          <thead><tr>
+            <th class="num" scope="col">#</th><th scope="col">Player</th>
+            <th class="num" scope="col" title="Matches played">MP</th><th class="num" scope="col" title="Wins">W</th>
+            <th class="num" scope="col" title="Draws">D</th><th class="num" scope="col" title="Losses">L</th>
+            <th class="num" scope="col" title="Goal difference">GD</th><th class="num" scope="col" title="Points">Pts</th>
+          </tr></thead>
+          <tbody>
+            ${rows.slice(0, limit).map((r) => `
+              <tr class="${r.position === 1 && r.played > 0 ? 'is-leader' : ''}">
+                <td class="num font-semibold text-white">${r.position}</td>
+                <td><div class="flex items-center gap-2 min-w-0">${ui.crest(r.player.team_name, 'sm')}<span class="font-semibold text-white truncate max-w-[120px]" title="${e(r.player.team_name)}">${e(r.player.player_name)}</span></div></td>
+                <td class="num">${r.played}</td><td class="num">${r.wins}</td><td class="num">${r.draws}</td><td class="num">${r.losses}</td>
+                <td class="num ${r.gd > 0 ? 'text-neon' : r.gd < 0 ? 'text-danger' : ''}">${gd(r.gd)}</td>
+                <td class="num font-display text-lg font-extrabold text-white">${r.points}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  };
+
+  ui.standingsTable = function (rows, { limit, compact = false, showForm = true, showAdjustment = false } = {}) {
+    const list = limit ? rows.slice(0, limit) : rows;
+    const gdText = (gd) => (gd > 0 ? `+${gd}` : String(gd));
+    const gdTone = (gd) => (gd > 0 ? 'text-neon' : gd < 0 ? 'text-danger' : '');
+    const adjText = (n) => (n > 0 ? `+${n}` : String(n));
+
+    return `
+      <div class="table-wrap">
+        <table class="ef-table">
+          <thead>
+            <tr>
+              <th class="num" scope="col" title="Position">Pos</th>
+              <th scope="col">Player</th>
+              <th class="num" scope="col" title="Matches played">MP</th>
+              <th class="num" scope="col" title="Wins">W</th>
+              <th class="num" scope="col" title="Draws">D</th>
+              <th class="num" scope="col" title="Losses">L</th>
+              ${compact ? '' : '<th class="num" scope="col" title="Goals for">GF</th><th class="num" scope="col" title="Goals against">GA</th>'}
+              <th class="num" scope="col" title="Goal difference">GD</th>
+              ${showAdjustment ? '<th class="num" scope="col" title="Manual point adjustment">Adj</th>' : ''}
+              <th class="num" scope="col" title="Points">Pts</th>
+              ${showForm && !compact ? '<th scope="col" title="Last five matches, most recent first">Form</th>' : ''}
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map((r) => `
+              <tr class="${r.position <= 3 && r.played > 0 ? 'is-top' : ''} ${r.position === 1 && r.played > 0 ? 'is-leader' : ''}">
+                <td class="num"><span class="pos-chip ${r.played > 0 && r.position <= 3 ? `pos-${r.position}` : ''}">${r.position}</span></td>
+                <td>
+                  <div class="flex items-center gap-3 min-w-[170px]">
+                    ${ui.avatar(r.player, 'sm')}
+                    <div class="min-w-0">
+                      <p class="font-semibold text-white truncate max-w-[220px]">${e(r.player.player_name)}</p>
+                      <p class="text-xs text-muted truncate max-w-[220px]">${e(r.player.team_name)}</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="num">${r.played}</td>
+                <td class="num">${r.wins}</td>
+                <td class="num">${r.draws}</td>
+                <td class="num">${r.losses}</td>
+                ${compact ? '' : `<td class="num">${r.gf}</td><td class="num">${r.ga}</td>`}
+                <td class="num font-semibold ${gdTone(r.gd)}">${gdText(r.gd)}</td>
+                ${showAdjustment ? `<td class="num ${r.adjustment > 0 ? 'text-neon' : r.adjustment < 0 ? 'text-danger' : 'text-subtle'}">${r.adjustment ? adjText(r.adjustment) : '—'}</td>` : ''}
+                <td class="num"><span class="pts">${r.points}</span></td>
+                ${showForm && !compact ? `<td>${ui.formPills(r.form)}</td>` : ''}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  };
+
+  /** Generated team crest from the team name (original badge, no real club marks). */
+  ui.crest = (team, size = '') => `<span class="crest ${size ? `crest--${size}` : ''}" style="--h:${hue(team || '?')}" title="${e(team || '')}" aria-hidden="true">${e(initials(team || '?'))}</span>`;
+
+  /** Compact one-line fixture/result row used in home page panels. */
+  ui.miniMatchRow = function (m) {
+    const scored = Number.isInteger(m.home_score) && Number.isInteger(m.away_score) && (m.status === 'completed' || m.status === 'live');
+    const when = `${relativeDay(m.scheduled_at) || formatDate(m.scheduled_at, { day: 'numeric', month: 'short' })}, ${formatTime(m.scheduled_at)}`;
+    const mid = scored
+      ? `<p class="mini-row__score">${m.home_score} - ${m.away_score}</p>${m.status === 'live' ? '<p class="mini-row__meta !text-[#ff8399]"><span class="live-dot"></span>Live</p>' : `<p class="mini-row__meta">${ui.icon('calendar', '')}${e(when)}</p>`}`
+      : `<p class="mini-row__vs">VS</p><p class="mini-row__meta">${ui.icon('calendar', '')}${e(when)}</p>`;
+    const home = m.home || {};
+    const away = m.away || {};
+    return `
+      <a href="fixtures.html" class="mini-row" title="${e(home.player_name || 'TBD')} vs ${e(away.player_name || 'TBD')}">
+        ${ui.crest(home.team_name || home.player_name, 'sm')}
+        <p class="mini-row__name" title="${e(home.team_name || '')}">${e(home.player_name || 'TBD')}</p>
+        <div class="mini-row__mid">${mid}</div>
+        <p class="mini-row__name text-right" title="${e(away.team_name || '')}">${e(away.player_name || 'TBD')}</p>
+        ${ui.crest(away.team_name || away.player_name, 'sm')}
+      </a>`;
+  };
+
+  EF.ui = ui;
+})();

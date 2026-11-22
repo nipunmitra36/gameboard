@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Admin Control Center</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#04070f">
+  <link rel="icon" href="../assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="../assets/js/tailwind.config.js"></script>
+  <link rel="stylesheet" href="../assets/css/app.css">
+</head>
+<body data-page="admin">
+
+  <!-- Boot -->
+  <div id="admin-boot" class="min-h-screen grid place-items-center">
+    <div class="text-center"><span class="spinner"></span><p class="text-sm text-muted mt-3">Loading control center…</p></div>
+  </div>
+
+  <!-- Login -->
+  <section id="admin-login" class="min-h-screen flex items-center justify-center px-4 py-10" hidden>
+    <div class="w-full max-w-md reveal">
+      <a href="../index.html" class="flex items-center justify-center gap-3 mb-8" id="login-brand"></a>
+      <div class="glass glass--accent p-6 sm:p-8">
+        <span class="eyebrow">Control center</span>
+        <h1 class="font-display text-3xl sm:text-4xl font-black italic uppercase text-white mt-3" id="login-title">Admin Sign In</h1>
+        <p class="text-sm text-muted mt-2" id="login-intro">Restricted area. Authorised tournament administrators only.</p>
+        <form id="login-form" class="mt-7 grid gap-4" novalidate>
+          <div data-form-alert hidden></div>
+          <div class="field">
+            <label class="label" for="login-email">Email address</label>
+            <div class="relative">
+              <span class="input-icon"><i data-lucide="mail"></i></span>
+              <input id="login-email" name="email" type="email" class="input has-icon" autocomplete="username" placeholder="admin@yourdomain.com" required>
+            </div>
+            <p class="field-error" data-error-for="email" hidden></p>
+          </div>
+          <div class="field">
+            <label class="label" for="login-password">Password</label>
+            <div class="relative">
+              <span class="input-icon"><i data-lucide="lock"></i></span>
+              <input id="login-password" name="password" type="password" class="input has-icon pr-12" autocomplete="current-password" placeholder="••••••••" required>
+              <button type="button" class="absolute right-2 top-1/2 -translate-y-1/2 icon-btn icon-btn--sm !border-0 !bg-transparent" data-toggle-password aria-label="Show password"><i data-lucide="eye"></i></button>
+            </div>
+            <p class="field-error" data-error-for="password" hidden></p>
+          </div>
+          <div class="field" id="confirm-field" hidden>
+            <label class="label" for="login-confirm">Confirm password</label>
+            <div class="relative">
+              <span class="input-icon"><i data-lucide="lock-keyhole"></i></span>
+              <input id="login-confirm" name="password_confirm" type="password" class="input has-icon" autocomplete="new-password" placeholder="••••••••">
+            </div>
+            <p class="field-error" data-error-for="password_confirm" hidden></p>
+          </div>
+          <button type="submit" class="btn btn-primary btn-lg w-full mt-2" data-submit><i data-lucide="log-in"></i>Sign In</button>
+        </form>
+      </div>
+      <p class="text-center text-xs text-subtle mt-6"><a href="../index.html" class="hover:text-neon transition-colors inline-flex items-center gap-1.5"><i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>Back to tournament site</a></p>
+      <p class="text-center text-xs text-subtle mt-3">Development by <span class="font-display font-extrabold italic text-neon text-sm">Nipun Mitra</span></p>
+    </div>
+  </section>
+
+  <!-- App -->
+  <div id="admin-app" hidden>
+    <aside id="admin-sidebar" class="admin-sidebar" aria-label="Admin navigation">
+      <div class="flex items-center justify-between gap-3 px-5 h-[72px] border-b border-white/5">
+        <a href="#/overview" class="flex items-center gap-3 min-w-0" id="sidebar-brand"></a>
+        <button type="button" class="icon-btn icon-btn--sm lg:hidden" data-sidebar-close aria-label="Close menu"><i data-lucide="x"></i></button>
+      </div>
+      <nav id="admin-nav" class="flex-1 overflow-y-auto p-4 grid content-start gap-1"></nav>
+      <div class="p-4 border-t border-white/5 grid gap-2">
+        <div class="px-2 pb-2 min-w-0">
+          <p class="text-[11px] uppercase tracking-[.18em] text-subtle">Signed in as</p>
+          <p class="text-sm text-white font-medium truncate mt-1" id="admin-email">—</p>
+        </div>
+        <a href="../index.html" target="_blank" rel="noopener" class="btn btn-ghost btn-sm w-full"><i data-lucide="external-link"></i>View Website</a>
+        <button type="button" class="btn btn-ghost btn-sm w-full" data-sign-out><i data-lucide="log-out"></i>Sign Out</button>
+        <p class="text-center text-[11px] text-subtle pt-1">Development by <span class="font-display font-extrabold italic text-neon text-xs">Nipun Mitra</span></p>
+      </div>
+    </aside>
+    <div class="admin-overlay" data-sidebar-close></div>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <button type="button" class="icon-btn lg:hidden" data-sidebar-open aria-label="Open menu"><i data-lucide="menu"></i></button>
+        <div class="min-w-0 flex-1">
+          <h1 class="font-display text-xl sm:text-2xl font-bold uppercase text-white truncate" id="view-title">Dashboard</h1>
+          <p class="text-xs text-muted truncate" id="view-subtitle"></p>
+        </div>
+        <div class="hidden md:flex items-center gap-2" id="topbar-status"></div>
+        <button type="button" class="icon-btn" data-refresh aria-label="Refresh data" title="Refresh data"><i data-lucide="refresh-cw"></i></button>
+      </header>
+      <main id="admin-view" class="p-4 sm:p-6 lg:p-8 max-w-[1400px]" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="../assets/js/config.js"></script>
+  <script src="../assets/js/core/utils.js"></script>
+  <script src="../assets/js/core/local-db.js"></script>
+  <script src="../assets/js/core/supabase.js"></script>
+  <script src="../assets/js/core/ui.js"></script>
+  <script src="../assets/js/core/standings.js"></script>
+  <script src="../assets/js/core/api.js"></script>
+  <script src="../assets/js/admin/app.js"></script>
+  <script src="../assets/js/admin/modules/overview.js"></script>
+  <script src="../assets/js/admin/modules/players.js"></script>
+  <script src="../assets/js/admin/modules/registrations.js"></script>
+  <script src="../assets/js/admin/modules/fixtures.js"></script>
+  <script src="../assets/js/admin/modules/results.js"></script>
+  <script src="../assets/js/admin/modules/points.js"></script>
+  <script src="../assets/js/admin/modules/rules.js"></script>
+  <script src="../assets/js/admin/modules/settings.js"></script>
+</body>
+</html>

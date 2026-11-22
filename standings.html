@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Point Table | eFootball Tournament</title>
+  <meta name="description" content="Live tournament standings calculated automatically from completed matches.">
+  <meta name="theme-color" content="#04070f">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="assets/js/tailwind.config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body data-page="standings" data-page-title="Point Table">
+  <a href="#main" class="skip-link">Skip to content</a>
+  <div id="site-header"></div>
+
+  <main id="main" class="container-ef pt-10 sm:pt-14">
+    <header class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 reveal">
+      <div>
+        <span class="eyebrow">Leaderboard</span>
+        <h1 class="page-title mt-3">Point <span class="text-gradient">Table</span></h1>
+        <p class="text-muted mt-3 max-w-xl">Calculated automatically from every completed match. Rankings update the moment a result is confirmed.</p>
+      </div>
+      <div class="flex flex-wrap gap-2" id="scoring-chips"></div>
+    </header>
+
+    <div id="standings-highlights" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-8 reveal reveal-2"></div>
+
+    <section class="glass mt-6 overflow-hidden reveal reveal-3" aria-label="Standings">
+      <div id="standings-table"></div>
+    </section>
+
+    <section class="mt-6 grid md:grid-cols-2 gap-4 text-sm">
+      <div class="glass p-5">
+        <p class="font-display font-bold uppercase tracking-[.18em] text-xs text-subtle">Key</p>
+        <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-muted">
+          <div><dt class="inline font-semibold text-white">MP</dt> <dd class="inline">Matches played</dd></div>
+          <div><dt class="inline font-semibold text-white">W / D / L</dt> <dd class="inline">Wins, draws, losses</dd></div>
+          <div><dt class="inline font-semibold text-white">GF</dt> <dd class="inline">Goals for</dd></div>
+          <div><dt class="inline font-semibold text-white">GA</dt> <dd class="inline">Goals against</dd></div>
+          <div><dt class="inline font-semibold text-white">GD</dt> <dd class="inline">Goal difference</dd></div>
+          <div><dt class="inline font-semibold text-white">Pts</dt> <dd class="inline">Points</dd></div>
+        </dl>
+      </div>
+      <div class="glass p-5">
+        <p class="font-display font-bold uppercase tracking-[.18em] text-xs text-subtle">Tie-breakers</p>
+        <ol class="mt-3 grid gap-1.5 text-muted list-decimal list-inside">
+          <li>Total points (including admin adjustments)</li>
+          <li>Goal difference</li>
+          <li>Goals scored</li>
+          <li>Number of wins</li>
+        </ol>
+        <p class="text-xs text-subtle mt-3" id="standings-updated"></p>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/core/utils.js"></script>
+  <script src="assets/js/core/local-db.js"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/core/ui.js"></script>
+  <script src="assets/js/core/standings.js"></script>
+  <script src="assets/js/core/api.js"></script>
+  <script src="assets/js/core/layout.js"></script>
+  <script src="assets/js/components/registration.js"></script>
+  <script src="assets/js/pages/standings.js"></script>
+</body>
+</html>

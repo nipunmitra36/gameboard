@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Fixtures | eFootball Tournament</title>
+  <meta name="description" content="Tournament fixtures, kickoff times, live matches and final results.">
+  <meta name="theme-color" content="#04070f">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="assets/js/tailwind.config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body data-page="fixtures" data-page-title="Fixtures">
+  <a href="#main" class="skip-link">Skip to content</a>
+  <div id="site-header"></div>
+
+  <main id="main" class="container-ef pt-10 sm:pt-14">
+    <header class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 reveal">
+      <div>
+        <span class="eyebrow eyebrow--volt">Match centre</span>
+        <h1 class="page-title mt-3">Fixtures &amp; <span class="text-gradient">Results</span></h1>
+        <p class="text-muted mt-3 max-w-xl">Kickoff times are shown in your local time zone. Scores update live as the admin records them.</p>
+      </div>
+      <p class="text-xs text-muted inline-flex items-center gap-2" id="fixtures-updated"></p>
+    </header>
+
+    <div class="mt-8 flex flex-col md:flex-row md:items-center gap-3 reveal reveal-2">
+      <div class="scroll-x flex-1 -mx-4 px-4 md:mx-0 md:px-0" role="tablist" aria-label="Filter by match status" id="status-tabs"></div>
+      <div class="relative md:w-72 shrink-0">
+        <span class="input-icon"><i data-lucide="search"></i></span>
+        <label for="fixture-search" class="sr-only">Search by player or team</label>
+        <input id="fixture-search" type="search" class="input has-icon" placeholder="Search player or team" autocomplete="off">
+      </div>
+    </div>
+
+    <section id="fixture-list" class="mt-8 grid gap-10" aria-live="polite"></section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/core/utils.js"></script>
+  <script src="assets/js/core/local-db.js"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/core/ui.js"></script>
+  <script src="assets/js/core/standings.js"></script>
+  <script src="assets/js/core/api.js"></script>
+  <script src="assets/js/core/layout.js"></script>
+  <script src="assets/js/components/registration.js"></script>
+  <script src="assets/js/pages/fixtures.js"></script>
+</body>
+</html>

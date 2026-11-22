@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Players | eFootball Tournament</title>
+  <meta name="description" content="Every registered player, team and eFootball username in the tournament.">
+  <meta name="theme-color" content="#04070f">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="assets/js/tailwind.config.js"></script>
+  <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body data-page="players" data-page-title="Players">
+  <a href="#main" class="skip-link">Skip to content</a>
+  <div id="site-header"></div>
+
+  <main id="main" class="container-ef pt-10 sm:pt-14">
+    <header class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 reveal">
+      <div>
+        <span class="eyebrow">The roster</span>
+        <h1 class="page-title mt-3">Player <span class="text-gradient">List</span></h1>
+        <p class="text-muted mt-3 max-w-xl">Everyone registered for the tournament. New registrations appear here instantly and are confirmed by the admin.</p>
+      </div>
+      <button type="button" class="btn btn-primary self-start lg:self-auto" data-action="join"><i data-lucide="user-plus"></i>Join Now</button>
+    </header>
+
+    <div class="grid grid-cols-3 gap-3 mt-8 reveal reveal-2" id="player-summary">
+      <div class="stat-tile"><p class="stat-tile__value" data-count="total">—</p><p class="stat-tile__label">Registered</p></div>
+      <div class="stat-tile"><p class="stat-tile__value text-neon" data-count="approved">—</p><p class="stat-tile__label">Approved</p></div>
+      <div class="stat-tile"><p class="stat-tile__value !text-[#ffb547]" data-count="pending">—</p><p class="stat-tile__label">Pending</p></div>
+    </div>
+
+    <section class="glass mt-6 reveal reveal-3" aria-label="Players">
+      <div class="p-4 sm:p-5 grid gap-3 md:grid-cols-[1fr_200px_200px] border-b border-white/5">
+        <div class="relative">
+          <span class="input-icon"><i data-lucide="search"></i></span>
+          <label for="player-search" class="sr-only">Search players</label>
+          <input id="player-search" type="search" class="input has-icon" placeholder="Search name, team or username" autocomplete="off">
+        </div>
+        <div>
+          <label for="player-status" class="sr-only">Filter by status</label>
+          <select id="player-status" class="select">
+            <option value="all">All statuses</option>
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+        <div>
+          <label for="player-sort" class="sr-only">Sort players</label>
+          <select id="player-sort" class="select">
+            <option value="position">Registration order</option>
+            <option value="name">Player name A–Z</option>
+            <option value="team">Team name A–Z</option>
+          </select>
+        </div>
+      </div>
+      <p class="px-4 sm:px-5 pt-4 text-xs text-muted" id="player-count" aria-live="polite"></p>
+      <div id="player-list" class="pb-2"></div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://unpkg.com/lucide@0.453.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/core/utils.js"></script>
+  <script src="assets/js/core/local-db.js"></script>
+  <script src="assets/js/core/supabase.js"></script>
+  <script src="assets/js/core/ui.js"></script>
+  <script src="assets/js/core/standings.js"></script>
+  <script src="assets/js/core/api.js"></script>
+  <script src="assets/js/core/layout.js"></script>
+  <script src="assets/js/components/registration.js"></script>
+  <script src="assets/js/pages/players.js"></script>
+</body>
+</html>
