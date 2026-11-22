@@ -105,10 +105,13 @@
   }
 
   function configNotice() {
+    const setup = EF.backend === 'google_script'
+      ? 'deploy google-apps-script/Code.gs as a web app, then add its /exec URL to APPS_SCRIPT_URL in assets/js/config.js.'
+      : 'add your Supabase URL and anon key to assets/js/config.js, then run the SQL files in supabase/.';
     return `
       <div class="notice-bar" role="status">
         ${ui.icon('circle-alert', '')}
-        <p><strong>Setup required:</strong> add your Supabase URL and anon key to <code>assets/js/config.js</code>, then run the SQL files in <code>supabase/</code>. See README.md.</p>
+        <p><strong>Setup required:</strong> ${setup} See README.md.</p>
       </div>`;
   }
 

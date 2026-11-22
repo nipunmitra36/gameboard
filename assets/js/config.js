@@ -8,6 +8,8 @@
  *                Settings page to export / import backups.
  *   'supabase' — shared online database. Run supabase/setup_all.sql once, then
  *                fill in SUPABASE_URL and SUPABASE_ANON_KEY below.
+ *   'google_script' — shared Google Sheet through the bound Apps Script in
+ *                google-apps-script/Code.gs. Deploy it as a web app first.
  *
  * ADMIN LOGIN (local mode)
  *   Admin page:  controlleradmin/index.html   (e.g. http://localhost:5500/controlleradmin/)
@@ -15,13 +17,14 @@
  *   the new values apply on the next login and old sessions are signed out.
  *   Note: in local mode this file is public, so anyone who opens it can read
  *   the password. That is acceptable only because local mode keeps all data in
- *   your own browser. Use Supabase mode for a public, multi-device tournament.
+ *   your own browser. Use Google Apps Script or Supabase for shared public data.
  *
  * The Supabase publishable/anon key is safe in the browser (RLS protects data).
  * NEVER put a secret / service_role key in this file.
  */
 window.EF_CONFIG = {
   BACKEND: 'local',
+  APPS_SCRIPT_URL: '',
 
   ADMIN_USERNAME: 'admin',
   ADMIN_PASSWORD: 'Admin@12345',

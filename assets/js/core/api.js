@@ -1,10 +1,10 @@
-/* Data-access layer. Every Supabase call in the app goes through here. */
+/* Data-access layer. Every database call in the app goes through here. */
 (function () {
   'use strict';
   window.EF = window.EF || {};
 
   const MESSAGES = {
-    NOT_CONFIGURED: 'Supabase is not configured yet. Add your project URL and anon key to assets/js/config.js.',
+    NOT_CONFIGURED: 'The selected data backend is not configured yet. Check assets/js/config.js.',
     NO_ACTIVE_TOURNAMENT: 'There is no tournament open right now. Please check back soon.',
     REGISTRATION_CLOSED: 'Registration for this tournament is currently closed.',
     TOURNAMENT_FULL: 'This tournament has reached its maximum number of players.',
@@ -26,7 +26,7 @@
     }
   }
 
-  /** Convert any Supabase/network error into a sentence a user can act on. */
+  /** Convert any backend/network error into a sentence a user can act on. */
   function friendlyError(err) {
     if (!err) return 'Something went wrong. Please try again.';
     if (typeof err === 'string') return MESSAGES[err] || err;
@@ -219,6 +219,10 @@
 
   /* ---------------- Admin (RLS: admins only) ---------------- */
   api.admin = {
+    async importBackup(backup) {
+      return run(db().rpc('import_backup', { p_backup: backup }));
+    },
+
     async getProfile(userId) {
       return run(db().from('admin_users').select('*').eq('user_id', userId).maybeSingle());
     },

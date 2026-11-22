@@ -123,7 +123,9 @@
               </div>
               <p class="text-xs text-subtle mt-3 leading-relaxed">${EF.backend === 'local'
                 ? 'Local mode: this admin account exists only in this browser.'
-                : 'Administrators are managed in Supabase (see supabase/03_admin_setup.sql).'}</p>
+                : EF.backend === 'google_script'
+                  ? 'Admin credentials are managed in the bound Google Sheet through its Tournament setup menu.'
+                  : 'Administrators are managed in Supabase (see supabase/03_admin_setup.sql).'}</p>
             </section>
           </div>
         </form>
@@ -139,6 +141,47 @@
               <button type="button" class="btn btn-ghost btn-sm !text-[#ff8399]" data-reset>${ui.icon('trash-2', '')}Reset all data</button>
             </div>
           </section>` : ''}`;
+
+      if (EF.backend === 'google_script') {
+        const section = document.createElement('section');
+        section.className = 'glass p-5 sm:p-6 mt-6';
+        section.innerHTML = `
+          ${admin.panelHead('Move browser data to this Sheet', 'Export a backup from the browser that currently has your tournament data, then import it here.')}
+          <div class="form-alert form-alert--info mb-4">${ui.icon('info', '')}<span>Import replaces all tournament data in the Google Sheet. Use this only for your initial migration or when you intend to replace the Sheet data.</span></div>
+          <div class="flex flex-wrap gap-3">
+            <button type="button" class="btn btn-secondary btn-sm" data-local-export>${ui.icon('download', '')}Export this browser's local data</button>
+            <label class="btn btn-ghost btn-sm cursor-pointer">${ui.icon('upload', '')}Import backup to Sheet<input type="file" accept="application/json,.json" class="sr-only" data-sheet-import></label>
+          </div>`;
+        el.querySelector('form[data-settings]').after(section);
+
+        section.querySelector('[data-local-export]').addEventListener('click', () => {
+          const blob = new Blob([EF.local.exportJson()], { type: 'application/json' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `efootball-backup-${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => { URL.revokeObjectURL(link.href); link.remove(); }, 0);
+          ui.toast('Browser backup downloaded.', 'success');
+        });
+
+        section.querySelector('[data-sheet-import]').addEventListener('change', async (event) => {
+          const file = event.target.files && event.target.files[0];
+          event.target.value = '';
+          if (!file) return;
+          try {
+            const backup = JSON.parse(await file.text());
+            const ok = await ui.confirm({
+              title: 'Replace Sheet data?',
+              message: 'This replaces all tournaments, players, fixtures and point adjustments in the Google Sheet.',
+              confirmText: 'Import backup',
+            });
+            if (ok) await admin.mutate(() => api.admin.importBackup(backup), { success: 'Data imported to the Google Sheet.' });
+          } catch (error) {
+            ui.toast(error.message || 'Could not import that backup.', 'error');
+          }
+        });
+      }
 
       if (EF.backend === 'local') {
         const replaceAll = async (title, message, confirmText, action, success) => {
