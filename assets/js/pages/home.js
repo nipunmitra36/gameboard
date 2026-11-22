@@ -29,6 +29,14 @@ EF.boot(async function homePage() {
   const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[62px]"></div>').join('');
   const panelEmpty = (icon, title, message) => `<div class="py-2">${ui.state.empty({ icon, title, message })}</div>`;
   let countdownInterval = null;
+  let playersInterval = null;
+  let playersResetTimeout = null;
+  let playersAdvance = null;
+  let playersCanRotate = false;
+  let playersHovered = false;
+  let playersFocused = false;
+  let playersVisibleCount = 0;
+  let latestPlayers = [];
 
   function renderCountdown(startDate) {
     if (countdownInterval) window.clearInterval(countdownInterval);
@@ -141,15 +149,17 @@ EF.boot(async function homePage() {
   }
 
   function showError(message) {
+    clearPlayersCarousel();
     el.title.textContent = 'Tournament';
     el.joinPanel.innerHTML = ui.state.error({ message, retry: false });
     [el.upcoming, el.results].forEach((c) => { c.innerHTML = ui.state.error({ message }); });
     el.table.innerHTML = ui.state.error({ message, retry: false });
-    el.players.innerHTML = `<div class="col-span-full">${ui.state.error({ message, retry: false })}</div>`;
+    el.players.innerHTML = ui.state.error({ message, retry: false });
     ui.icons();
   }
 
   function renderNoTournament() {
+    clearPlayersCarousel();
     renderCountdown(null);
     el.title.innerHTML = 'Season<br><span class="text-white">Loading</span>';
     el.season.textContent = 'Coming soon';
@@ -162,7 +172,7 @@ EF.boot(async function homePage() {
     el.upcoming.innerHTML = panelEmpty('calendar-clock', 'No fixtures yet', 'Fixtures appear once the tournament is published.');
     el.results.innerHTML = panelEmpty('flag', 'No results yet', 'Completed matches will show up here.');
     el.table.innerHTML = panelEmpty('list-ordered', 'Table not available', 'The point table goes live with the tournament.');
-    el.players.innerHTML = `<div class="col-span-full">${ui.state.empty({ icon: 'users', title: 'No players yet', message: 'Registrations open when the tournament is published.' })}</div>`;
+    el.players.innerHTML = ui.state.empty({ icon: 'users', title: 'No players yet', message: 'Registrations open when the tournament is published.' });
     el.rules.hidden = true;
     ui.icons();
   }
@@ -230,19 +240,125 @@ EF.boot(async function homePage() {
 
   function renderPlayers(d) {
     el.playersTotal.textContent = `Total: ${EF.utils.plural(d.players.length, 'Player')}`;
-    const latest = [...d.players].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 4);
-    if (!latest.length) {
-      el.players.innerHTML = `<div class="col-span-full">${ui.state.empty({ icon: 'user-plus', title: 'Be the first to join', message: 'Registered players will appear here.' })}</div>`;
+    clearPlayersCarousel();
+    latestPlayers = [...d.players].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    if (!latestPlayers.length) {
+      el.players.innerHTML = ui.state.empty({ icon: 'user-plus', title: 'Be the first to join', message: 'Registered players will appear here.' });
       return;
     }
-    el.players.innerHTML = latest.map((p) => `
-      <a href="players.html" class="player-card">
-        ${ui.avatar(p, 'lg')}
-        <p class="font-display text-lg font-extrabold text-white mt-3 truncate">${e(p.player_name)}</p>
-        <p class="text-sm text-soft truncate">${e(p.team_name)}</p>
-        <p class="status-dot mt-2 ${p.status === 'approved' ? 'text-[#4ade80]' : 'text-warn'}">${p.status === 'approved' ? 'Active' : 'Pending'}</p>
-      </a>`).join('');
+    playersVisibleCount = window.matchMedia('(min-width: 640px)').matches ? 4 : 2;
+
+    const slide = (p, index, clone = false) => `
+      <div class="player-carousel__slide" role="group" aria-label="Player ${index + 1} of ${latestPlayers.length}"${clone ? ' aria-hidden="true" inert' : ''}>
+        <a href="players.html" class="player-card"${clone ? ' tabindex="-1"' : ''}>
+          ${ui.avatar(p, 'lg')}
+          <p class="font-display text-lg font-extrabold text-white mt-3 truncate">${e(p.player_name)}</p>
+          <p class="text-sm text-soft truncate">${e(p.team_name)}</p>
+          <p class="status-dot mt-2 ${p.status === 'approved' ? 'text-[#4ade80]' : 'text-warn'}">${p.status === 'approved' ? 'Active' : 'Pending'}</p>
+        </a>
+      </div>`;
+    const slides = latestPlayers.map((p, index) => slide(p, index));
+    if (latestPlayers.length > playersVisibleCount) {
+      slides.push(...latestPlayers.slice(0, playersVisibleCount).map((p, index) => slide(p, index, true)));
+    }
+
+    el.players.innerHTML = `
+      <div class="player-carousel__viewport">
+        <div class="player-carousel__track">${slides.join('')}</div>
+      </div>`;
+
+    if (latestPlayers.length <= playersVisibleCount || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const track = el.players.querySelector('.player-carousel__track');
+    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+    const step = track.firstElementChild.getBoundingClientRect().width + gap;
+    let index = 0;
+
+    const updateSlides = () => {
+      Array.from(track.children).forEach((item, itemIndex) => {
+        const visible = itemIndex >= index && itemIndex < index + playersVisibleCount && itemIndex < latestPlayers.length;
+        item.setAttribute('aria-hidden', String(!visible));
+        item.inert = !visible;
+      });
+    };
+    const moveTo = (animate) => {
+      track.style.transition = animate ? '' : 'none';
+      track.style.transform = `translateX(-${step * index}px)`;
+      if (!animate) {
+        track.offsetWidth;
+        track.style.transition = '';
+      }
+      updateSlides();
+    };
+
+    playersAdvance = () => {
+      index += 1;
+      moveTo(true);
+      if (index === latestPlayers.length) {
+        playersResetTimeout = window.setTimeout(() => {
+          index = 0;
+          moveTo(false);
+          playersResetTimeout = null;
+        }, 550);
+      }
+    };
+    playersCanRotate = true;
+    updateSlides();
+    startPlayersCarousel();
   }
+
+  function stopPlayersCarousel() {
+    if (playersInterval) window.clearInterval(playersInterval);
+    playersInterval = null;
+  }
+
+  function clearPlayersCarousel() {
+    stopPlayersCarousel();
+    if (playersResetTimeout) window.clearTimeout(playersResetTimeout);
+    playersResetTimeout = null;
+    playersAdvance = null;
+    playersCanRotate = false;
+    playersVisibleCount = 0;
+    latestPlayers = [];
+  }
+
+  function startPlayersCarousel() {
+    if (!playersCanRotate || !playersAdvance || playersInterval || playersHovered || playersFocused || document.hidden) return;
+    playersInterval = window.setInterval(playersAdvance, 3500);
+  }
+
+  function syncPlayersCarousel() {
+    if (playersHovered || playersFocused || document.hidden) stopPlayersCarousel();
+    else startPlayersCarousel();
+  }
+
+  el.players.addEventListener('mouseenter', () => {
+    playersHovered = true;
+    syncPlayersCarousel();
+  });
+  el.players.addEventListener('mouseleave', () => {
+    playersHovered = false;
+    syncPlayersCarousel();
+  });
+  el.players.addEventListener('focusin', () => {
+    playersFocused = true;
+    syncPlayersCarousel();
+  });
+  el.players.addEventListener('focusout', (event) => {
+    if (!el.players.contains(event.relatedTarget)) {
+      playersFocused = false;
+      syncPlayersCarousel();
+    }
+  });
+  document.addEventListener('visibilitychange', syncPlayersCarousel);
+  let playersResizeTimeout = null;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(playersResizeTimeout);
+    playersResizeTimeout = window.setTimeout(() => {
+      if (latestPlayers.length) renderPlayers({ players: latestPlayers });
+    }, 150);
+  });
 
   function renderRules(t) {
     const lines = String(t.rules || '')
