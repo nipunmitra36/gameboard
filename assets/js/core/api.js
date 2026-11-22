@@ -15,6 +15,9 @@
     INVALID_USERNAME: 'eFootball username must be between 3 and 40 characters.',
     INVALID_EMAIL: 'Enter a valid email address.',
     INVALID_AVATAR: 'That profile photo could not be used. Upload a JPG, PNG or WebP image.',
+    PLAYER_PROFILE_NOT_FOUND: 'No player registration was found for this verified email address.',
+    PLAYER_EMAIL_NOT_VERIFIED: 'Verify your email address before opening a player profile.',
+    EMAIL_SIGNUP_DISABLED: 'Player email sign-in is disabled in Supabase. Enable new user sign-ups and email confirmation.',
     MATCH_PLAYERS_INVALID: 'Both players must be approved players in this tournament.',
     ADJUSTMENT_PLAYER_INVALID: 'The selected player does not belong to this tournament.',
     IMPORT_REQUIRES_EMPTY_DATABASE: 'Backup import only works when the Supabase tournament and news tables are empty. No existing records were changed.',
@@ -57,12 +60,16 @@
         return 'The requested record was not found.';
       case 'PGRST205':
         return 'Supabase is connected, but the public database tables are missing from its API schema. Run supabase/setup_all.sql in the Supabase SQL Editor, then reload the site.';
+      case 'PGRST202':
+        return 'The player profile database functions are missing. Run supabase/setup_all.sql in the Supabase SQL Editor, then reload the site.';
       default:
         break;
     }
     if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) return 'Network error. Check your connection and try again.';
     if (/Invalid login credentials/i.test(msg)) return EF.backend === 'local' ? 'Incorrect username or password.' : 'Incorrect email or password.';
     if (/Email not confirmed/i.test(msg)) return 'This account has not been confirmed yet.';
+    if (/Signups not allowed|signup_disabled/i.test(msg)) return MESSAGES.EMAIL_SIGNUP_DISABLED;
+    if (/token has expired|invalid.*token/i.test(msg)) return 'The code is incorrect or has expired. Request a new code and try again.';
     if (/rate limit/i.test(msg)) return 'Too many attempts. Please wait a moment and try again.';
     return msg || 'Something went wrong. Please try again.';
   }
@@ -108,6 +115,34 @@
     async getAdjustmentTotals(tournamentId) {
       return (await run(db().from('player_adjustment_totals').select('player_id,points')
         .eq('tournament_id', tournamentId))) || [];
+    },
+
+    async getMyPlayerProfile() {
+      return (await run(db().rpc('get_my_player_profile'))) || [];
+    },
+
+    async updateMyPlayerUsername(username) {
+      return run(db().rpc('update_player_efootball_username', {
+        p_efootball_username: String(username || '').trim(),
+      }));
+    },
+
+    async getProfileTournaments() {
+      return (await run(db().from('tournaments')
+        .select('id,name,season,is_active,points_win,points_draw,points_loss,created_at')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false }))) || [];
+    },
+
+    async getProfileStatsData(tournamentIds) {
+      const ids = [...new Set(tournamentIds)];
+      if (!ids.length) return { players: [], matches: [], adjustments: [] };
+      const [players, matches, adjustments] = await Promise.all([
+        run(db().from('players_public').select(PUBLIC_PLAYER_COLUMNS).in('tournament_id', ids)),
+        run(db().from('matches').select(MATCH_COLUMNS).in('tournament_id', ids)),
+        run(db().from('player_adjustment_totals').select('tournament_id,player_id,points').in('tournament_id', ids)),
+      ]);
+      return { players: players || [], matches: matches || [], adjustments: adjustments || [] };
     },
 
     async getPublicNews() {
@@ -213,8 +248,28 @@
       return data.session;
     },
 
+    async sendPlayerLoginCode(email) {
+      const { error } = await db().auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: { shouldCreateUser: true },
+      });
+      if (error) throw error;
+    },
+
+    async verifyPlayerLoginCode(email, token) {
+      const { data, error } = await db().auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: String(token || '').trim(),
+        type: 'email',
+      });
+      if (error) throw error;
+      return data.session;
+    },
+
     async signOut() {
-      if (EF.db) await EF.db.auth.signOut();
+      if (!EF.db) return;
+      const result = await EF.db.auth.signOut();
+      if (result && result.error) throw result.error;
     },
 
     onAuthChange(callback) {

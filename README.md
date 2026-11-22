@@ -78,9 +78,9 @@ Keep the Sheet private because it stores registration email addresses. Apps Scri
 Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 
 1. **Create a project** at [supabase.com](https://supabase.com).
-2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run**. It ends by listing the 6 tables, 2 views and 3 functions it created.
+2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run**. It ends by listing the 6 tables, 2 views and 5 key functions it created.
    (`setup_all.sql` is simply `01_schema.sql` + `02_policies.sql` combined; you can run those two in order instead.) All files are safe to re-run.
-3. **Lock down sign-ups:** go to *Authentication → Sign In / Providers* and turn off **Allow new users to sign up**. Admin accounts are created by you, not by visitors.
+3. **Enable player email sign-in:** go to *Authentication → Sign In / Providers*, enable **Allow new users to sign up** and email confirmations. The profile page uses one-time email codes; in the Supabase email template, include `{{ .Token }}` so the email contains the code. No password is used for player profiles.
 4. **Create the admin user:** go to *Authentication → Users → Add user*, enter an email and a strong password, and tick **Auto Confirm User**.
 5. **Grant admin rights:** edit the email in `supabase/03_admin_setup.sql` and run it. Repeat for each extra admin.
 6. **Connect the frontend:** copy *Project Settings → API → Project URL* and the **anon public** key into `assets/js/config.js`:
@@ -98,6 +98,8 @@ Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 7. **Create or migrate the tournament:** open `/controlleradmin` and sign in. To migrate this browser's data, use **Settings → Import browser backup to Supabase** before creating any records. The import is admin-only and refuses to run unless all managed tables, including news posts, are empty; it never deletes existing Supabase data. Otherwise, create the tournament in **Settings**, switch on **Published**, and save.
 
 Before switching from local mode, download **Settings → Export backup (.json)** in the browser that contains the current data. The import also offers **Export this browser's local data** after switching.
+
+Players can open **My Profile** and request a one-time email code using the same address as their registration. Only a confirmed email matching a player registration can read that player's safe profile fields. Players can change their eFootball username; the update applies to all registrations for that email. Tournament statistics are shown for published tournaments. This profile feature is Supabase-only.
 
 ## 5. Run locally
 
@@ -140,6 +142,7 @@ After deploying:
 ### Security (RLS)
 
 - **Public visitors** can read published tournaments and matches, plus the `players_public` and `player_adjustment_totals` views. Email addresses and admin identities never leave the database for them.
+- **Player profiles** require a confirmed Supabase email matching the registration email. Security-definer profile RPCs return only that email's safe player fields and allow updates to `efootball_username` only; no direct player self-update policy is added.
 - **Registration** goes through the `register_player()` RPC. It validates input, checks that registration is open and the tournament isn't full (locking the row, so it is race-safe), blocks duplicate emails and usernames, and sets the status from the auto-approve setting. Visitors have no direct insert access to any table.
 - **Admins** are authenticated users listed in `admin_users`, checked by the `is_admin()` function. Every write policy requires it. A user who signs in but is not in `admin_users` is signed straight back out.
 - **News & Notices** are managed in the admin panel and displayed on the homepage and News page. Expired notices are hidden from visitors; pinned notices appear first.
@@ -188,6 +191,8 @@ The home hero uses the background video at `assets/img/Free Update Released on S
 |---|---|
 | Yellow "Setup required" bar | For Google Sheets, configure `APPS_SCRIPT_URL` and `BACKEND: 'google_script'` in `assets/js/config.js`; for Supabase, set its URL and anon key |
 | `PGRST205` / table missing from schema cache | Run `supabase/setup_all.sql` in the Supabase SQL Editor. If it already succeeded, run `notify pgrst, 'reload schema';` and check that `public` is an exposed schema |
+| Profile page says profile functions are missing | Run the latest `supabase/setup_all.sql` in the SQL Editor, then reload the site |
+| Player email code cannot be sent | Enable Supabase sign-ups and email confirmations, and ensure the email template includes `{{ .Token }}` |
 | "You do not have permission to perform this action" while loading public data | Re-run the updated `supabase/setup_all.sql` in the Supabase SQL Editor to grant the required table privileges, then hard-refresh the site |
 | Other browsers do not show local-mode data | Local mode stores data in that browser only. Set up Google Sheets or Supabase for shared data |
 | Site says "Season Loading" / no tournament | In admin **Settings**, make sure **Published** is on |

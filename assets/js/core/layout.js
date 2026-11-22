@@ -11,6 +11,7 @@
     { id: 'fixtures', label: 'Fixtures', href: 'fixtures.html', icon: 'calendar-days' },
     { id: 'standings', label: 'Point Table', href: 'standings.html', icon: 'trophy' },
     { id: 'news', label: 'News', href: 'news.html', icon: 'newspaper' },
+    { id: 'profile', label: 'My Profile', href: 'profile.html', icon: 'circle-user-round' },
     { id: 'rules', label: 'Rules', href: 'index.html#rules', icon: 'book-open' },
   ];
 

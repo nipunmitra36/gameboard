@@ -441,6 +441,82 @@ begin
 end;
 $$;
 
+create or replace function public.get_my_player_profile()
+returns table (
+  id uuid,
+  tournament_id uuid,
+  player_name text,
+  team_name text,
+  efootball_username text,
+  status text,
+  avatar_url text,
+  created_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text;
+begin
+  select lower(u.email) into v_email
+    from auth.users as u
+   where u.id = auth.uid()
+     and u.email_confirmed_at is not null;
+
+  if v_email is null then
+    raise exception 'PLAYER_EMAIL_NOT_VERIFIED' using errcode = '42501';
+  end if;
+
+  return query
+  select p.id, p.tournament_id, p.player_name, p.team_name,
+         p.efootball_username, p.status, p.avatar_url, p.created_at
+    from public.players as p
+   where lower(p.email) = v_email
+   order by p.created_at desc;
+end;
+$$;
+
+create or replace function public.update_player_efootball_username(p_efootball_username text)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text;
+  v_username text := btrim(coalesce(p_efootball_username, ''));
+  v_updated integer;
+begin
+  select lower(u.email) into v_email
+    from auth.users as u
+   where u.id = auth.uid()
+     and u.email_confirmed_at is not null;
+
+  if v_email is null then
+    raise exception 'PLAYER_EMAIL_NOT_VERIFIED' using errcode = '42501';
+  end if;
+
+  if char_length(v_username) not between 3 and 40 then
+    raise exception 'INVALID_USERNAME' using errcode = '22023';
+  end if;
+
+  update public.players
+     set efootball_username = v_username
+   where lower(email) = v_email;
+
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    raise exception 'PLAYER_PROFILE_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  return v_updated;
+end;
+$$;
+
+revoke execute on function public.get_my_player_profile() from public, anon;
+revoke execute on function public.update_player_efootball_username(text) from public, anon;
+
 -- Import a local-browser backup only into an empty database. The admin check
 -- and table constraints still apply; the function never deletes remote data.
 create or replace function public.import_backup(p_backup jsonb)
@@ -585,6 +661,10 @@ grant  execute on function public.register_player(text, text, text, text, text) 
 revoke execute on function public.import_backup(jsonb) from public, anon;
 grant  execute on function public.import_backup(jsonb) to authenticated;
 grant  execute on function public.is_admin() to anon, authenticated;
+revoke execute on function public.get_my_player_profile() from public, anon;
+grant  execute on function public.get_my_player_profile() to authenticated;
+revoke execute on function public.update_player_efootball_username(text) from public, anon;
+grant  execute on function public.update_player_efootball_username(text) to authenticated;
 
 -- ---------------------------------------------------------------------
 --  tournaments
@@ -744,7 +824,7 @@ notify pgrst, 'reload schema';
 
 
 -- ---------------------------------------------------------------------
---  Confirmation: you should see 6 tables, 2 views and 3 functions below.
+--  Confirmation: you should see 6 tables, 2 views and 5 functions below.
 -- ---------------------------------------------------------------------
 select 'table' as kind, table_name as name
   from information_schema.tables
@@ -757,5 +837,8 @@ select 'view', table_name
 union all
 select 'function', routine_name
   from information_schema.routines
- where routine_schema = 'public' and routine_name in ('register_player', 'is_admin', 'import_backup')
+ where routine_schema = 'public' and routine_name in (
+   'register_player', 'is_admin', 'import_backup',
+   'get_my_player_profile', 'update_player_efootball_username'
+ )
 order by 1, 2;
