@@ -9,6 +9,7 @@ EF.boot(async function homePage() {
     regChip: qs('#hero-reg-chip'),
     title: qs('#hero-title'),
     desc: qs('#hero-desc'),
+    countdown: qs('#hero-countdown'),
     join: qs('#hero-join'),
     meta: qs('#hero-meta'),
     joinPanel: qs('#home-join-panel'),
@@ -27,6 +28,48 @@ EF.boot(async function homePage() {
 
   const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[62px]"></div>').join('');
   const panelEmpty = (icon, title, message) => `<div class="py-2">${ui.state.empty({ icon, title, message })}</div>`;
+  let countdownInterval = null;
+
+  function renderCountdown(startDate) {
+    if (countdownInterval) window.clearInterval(countdownInterval);
+    countdownInterval = null;
+
+    const target = startDate ? new Date(`${startDate}T00:00:00`) : null;
+    if (!target || Number.isNaN(target.getTime())) {
+      el.countdown.hidden = true;
+      el.countdown.innerHTML = '';
+      return;
+    }
+
+    el.countdown.hidden = false;
+    const update = () => {
+      const remaining = target.getTime() - Date.now();
+      if (remaining <= 0) {
+        el.countdown.innerHTML = '<p role="status" class="font-display text-xl sm:text-2xl font-extrabold italic text-neon">Tournament has started</p>';
+        if (countdownInterval) window.clearInterval(countdownInterval);
+        countdownInterval = null;
+        return;
+      }
+
+      const days = Math.floor(remaining / 86400000);
+      const hours = Math.floor((remaining % 86400000) / 3600000);
+      const minutes = Math.floor((remaining % 3600000) / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+      const units = [['Days', days], ['Hours', hours], ['Minutes', minutes], ['Seconds', seconds]];
+      el.countdown.innerHTML = `
+        <p class="text-xs font-bold uppercase tracking-[.22em] text-neon mb-2">Tournament starts in</p>
+        <div class="flex flex-wrap gap-2 sm:gap-3" role="timer" aria-label="Time until tournament starts">
+          ${units.map(([label, value]) => `
+            <div class="min-w-[66px] rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-center">
+              <span class="block font-display text-2xl sm:text-3xl font-black tabular-nums text-white">${String(value).padStart(2, '0')}</span>
+              <span class="block text-[10px] font-bold uppercase tracking-wider text-soft">${label}</span>
+            </div>`).join('')}
+        </div>`;
+    };
+
+    update();
+    if (target.getTime() > Date.now()) countdownInterval = window.setInterval(update, 1000);
+  }
 
   function initHeroVideo() {
     const hero = qs('[data-hero]');
@@ -107,6 +150,7 @@ EF.boot(async function homePage() {
   }
 
   function renderNoTournament() {
+    renderCountdown(null);
     el.title.innerHTML = 'Season<br><span class="text-white">Loading</span>';
     el.season.textContent = 'Coming soon';
     el.desc.textContent = 'The next tournament has not been published yet. Check back soon for registration, fixtures and live results.';
@@ -134,6 +178,7 @@ EF.boot(async function homePage() {
     el.season.textContent = t.season || 'Tournament Season';
     el.desc.textContent = t.description || 'Register your squad, follow every fixture and watch the point table update the moment results land.';
     el.champ.textContent = t.name;
+    renderCountdown(t.start_date);
 
     el.regChip.innerHTML = t.registration_open
       ? '<span class="badge badge--approved"><span class="live-dot !bg-[#d4ff1a] !shadow-none"></span>Registration open</span>'
