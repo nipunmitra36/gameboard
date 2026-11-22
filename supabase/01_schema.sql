@@ -257,6 +257,30 @@ create table if not exists public.point_adjustments (
 create index if not exists point_adjustments_lookup_idx
   on public.point_adjustments (tournament_id, player_id);
 
+-- ---------------------------------------------------------------------
+--  news_posts — public news and time-limited tournament notices.
+-- ---------------------------------------------------------------------
+create table if not exists public.news_posts (
+  id         uuid primary key default gen_random_uuid(),
+  post_type  text not null check (post_type in ('news', 'notice')),
+  title      text not null check (char_length(btrim(title)) between 3 and 120),
+  content    text not null check (char_length(btrim(content)) between 1 and 5000),
+  is_pinned  boolean not null default false,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint news_posts_pin_notice_chk check (not is_pinned or post_type = 'notice'),
+  constraint news_posts_expiry_notice_chk check (expires_at is null or post_type = 'notice')
+);
+
+create index if not exists news_posts_listing_idx
+  on public.news_posts (is_pinned desc, created_at desc);
+
+drop trigger if exists news_posts_updated_at_trg on public.news_posts;
+create trigger news_posts_updated_at_trg
+  before update on public.news_posts
+  for each row execute function public.set_updated_at();
+
 -- Stamp the author server-side so it cannot be spoofed by the client.
 create or replace function public.stamp_point_adjustment()
 returns trigger
@@ -431,16 +455,22 @@ begin
      or jsonb_typeof(p_backup -> 'point_adjustments') is distinct from 'array' then
     raise exception 'INVALID_BACKUP' using errcode = '22023';
   end if;
+  if p_backup ? 'news_posts'
+     and jsonb_typeof(p_backup -> 'news_posts') is distinct from 'array' then
+    raise exception 'INVALID_BACKUP' using errcode = '22023';
+  end if;
   if jsonb_array_length(p_backup -> 'tournaments') > 5000
      or jsonb_array_length(p_backup -> 'players') > 5000
      or jsonb_array_length(p_backup -> 'matches') > 5000
-     or jsonb_array_length(p_backup -> 'point_adjustments') > 5000 then
+     or jsonb_array_length(p_backup -> 'point_adjustments') > 5000
+     or (p_backup ? 'news_posts' and jsonb_array_length(p_backup -> 'news_posts') > 5000) then
     raise exception 'INVALID_BACKUP' using errcode = '22023';
   end if;
   if exists (select 1 from public.tournaments)
      or exists (select 1 from public.players)
      or exists (select 1 from public.matches)
-     or exists (select 1 from public.point_adjustments) then
+     or exists (select 1 from public.point_adjustments)
+     or exists (select 1 from public.news_posts) then
     raise exception 'IMPORT_REQUIRES_EMPTY_DATABASE' using errcode = 'P0001';
   end if;
 
@@ -487,6 +517,13 @@ begin
   select id, tournament_id, player_id, points, reason
     from jsonb_to_recordset(p_backup -> 'point_adjustments') as a(
       id uuid, tournament_id uuid, player_id uuid, points smallint, reason text
+    );
+
+  insert into public.news_posts (id, post_type, title, content, is_pinned, expires_at, created_at, updated_at)
+  select id, post_type, title, content, is_pinned, expires_at, created_at, updated_at
+    from jsonb_to_recordset(coalesce(p_backup -> 'news_posts', '[]'::jsonb)) as n(
+      id uuid, post_type text, title text, content text, is_pinned boolean,
+      expires_at timestamptz, created_at timestamptz, updated_at timestamptz
     );
 
   return true;

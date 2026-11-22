@@ -31,10 +31,10 @@ efootball/
 │       │   ├── api.js         All data access + friendly error messages + realtime
 │       │   └── layout.js      Public header/footer + page bootstrap (EF.boot)
 │       ├── components/registration.js   Join Now modal
-│       ├── pages/             home.js, players.js, fixtures.js, standings.js
+│       ├── pages/             home.js, players.js, fixtures.js, standings.js, news.js
 │       └── admin/
 │           ├── app.js         Auth, authorisation, data store, routing
-│           └── modules/       overview, players, registrations, fixtures, results, points, settings
+│           └── modules/       overview, players, registrations, fixtures, results, points, news, settings
 ├── supabase/
 │   ├── 01_schema.sql          Tables, constraints, triggers, views, register_player RPC
 │   ├── 02_policies.sql        Row Level Security, grants, realtime publication
@@ -78,7 +78,7 @@ Keep the Sheet private because it stores registration email addresses. Apps Scri
 Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 
 1. **Create a project** at [supabase.com](https://supabase.com).
-2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run**. It ends by listing the 5 tables, 2 views and 3 functions it created.
+2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run**. It ends by listing the 6 tables, 2 views and 3 functions it created.
    (`setup_all.sql` is simply `01_schema.sql` + `02_policies.sql` combined; you can run those two in order instead.) All files are safe to re-run.
 3. **Lock down sign-ups:** go to *Authentication → Sign In / Providers* and turn off **Allow new users to sign up**. Admin accounts are created by you, not by visitors.
 4. **Create the admin user:** go to *Authentication → Users → Add user*, enter an email and a strong password, and tick **Auto Confirm User**.
@@ -95,7 +95,7 @@ Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
    ```
    The anon key is designed to be public. **Never** put the `service_role` key in the frontend.
 
-7. **Create or migrate the tournament:** open `/controlleradmin` and sign in. To migrate this browser's data, use **Settings → Import browser backup to Supabase** before creating any records. The import is admin-only and refuses to run unless all tournament tables are empty; it never deletes existing Supabase data. Otherwise, create the tournament in **Settings**, switch on **Published**, and save.
+7. **Create or migrate the tournament:** open `/controlleradmin` and sign in. To migrate this browser's data, use **Settings → Import browser backup to Supabase** before creating any records. The import is admin-only and refuses to run unless all managed tables, including news posts, are empty; it never deletes existing Supabase data. Otherwise, create the tournament in **Settings**, switch on **Published**, and save.
 
 Before switching from local mode, download **Settings → Export backup (.json)** in the browser that contains the current data. The import also offers **Export this browser's local data** after switching.
 
@@ -135,12 +135,14 @@ After deploying:
 | `matches` | Fixtures and results | Players must differ and both be **approved** members of the tournament; `completed` requires both scores; scores 0–99; status `upcoming / live / completed / postponed` |
 | `point_adjustments` | Manual point changes | **Append-only audit log**; reason required; author stamped server-side from the JWT (cannot be spoofed) |
 | `admin_users` | Who may manage the site | Managed only from the SQL editor |
+| `news_posts` | Public news and notices | Admin-managed; notices can be pinned and optionally expire |
 
 ### Security (RLS)
 
 - **Public visitors** can read published tournaments and matches, plus the `players_public` and `player_adjustment_totals` views. Email addresses and admin identities never leave the database for them.
 - **Registration** goes through the `register_player()` RPC. It validates input, checks that registration is open and the tournament isn't full (locking the row, so it is race-safe), blocks duplicate emails and usernames, and sets the status from the auto-approve setting. Visitors have no direct insert access to any table.
 - **Admins** are authenticated users listed in `admin_users`, checked by the `is_admin()` function. Every write policy requires it. A user who signs in but is not in `admin_users` is signed straight back out.
+- **News & Notices** are managed in the admin panel and displayed on the homepage and News page. Expired notices are hidden from visitors; pinned notices appear first.
 - Point adjustments cannot be edited or deleted through the API. A mistake is undone with a **Reverse** entry, which keeps the history intact.
 
 ### Point table
@@ -165,6 +167,7 @@ Supabase Realtime pushes changes to `matches` and `tournaments` to every open pu
 | **Results** | Enter scores inline and change status; both scores auto-switch an upcoming match to *Completed*; unsaved rows survive other saves |
 | **Point Table** | Live standings with an adjustment column; apply ± points with a mandatory reason; audit log with *Reverse* |
 | **Rules** | Add rules (at the end or the top), quick-add common rules, edit, reorder with ↑ ↓, delete. Shown as a numbered list on the home page |
+| **News & Notices** | Publish and edit news; pin notices, set optional expiry times, or remove old posts. Public visitors see them on the home page and News page |
 | **Settings** | Name, season, description, format, platform, total prize (shown in the hero), dates, max players, scoring, publish / registration / auto-approve |
 
 Times are entered and displayed in each viewer's local time zone and stored in UTC.

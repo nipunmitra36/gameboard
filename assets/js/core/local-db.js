@@ -11,11 +11,11 @@
 
   const DB_KEY = 'ef_local_db_v1';
   const SESSION_KEY = 'ef_local_session_v1';
-  const TABLES = ['tournaments', 'players', 'matches', 'point_adjustments', 'admin_users'];
+  const TABLES = ['tournaments', 'players', 'matches', 'point_adjustments', 'admin_users', 'news_posts'];
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   /* ---------------- storage ---------------- */
-  const empty = () => ({ version: 1, tournaments: [], players: [], matches: [], point_adjustments: [], admin_users: [], accounts: [] });
+  const empty = () => ({ version: 1, tournaments: [], players: [], matches: [], point_adjustments: [], admin_users: [], news_posts: [], accounts: [] });
 
   function read() {
     try {
@@ -107,6 +107,8 @@
         });
         return Array.from(totals.values());
       }
+      case 'news_posts':
+        return data.news_posts.filter((post) => admin || !post.expires_at || new Date(post.expires_at) > new Date());
       case 'players': case 'point_adjustments': return admin ? data[table] : [];
       case 'admin_users': { const s = getSession(); return s ? data.admin_users.filter((a) => a.user_id === s.user.id || admin) : []; }
       default: throw dbError(`Could not find the table 'public.${table}'`, 'PGRST205');
@@ -142,6 +144,23 @@
     else p.approved_at = null;
   }
 
+  function normaliseNewsPost(post) {
+    post.title = String(post.title || '').trim();
+    post.content = String(post.content || '').trim();
+    if (post.title.length < 3 || post.title.length > 120) throw dbError('violates news_posts_title check', '23514');
+    if (post.content.length < 1 || post.content.length > 5000) throw dbError('violates news_posts_content check', '23514');
+    if (!['news', 'notice'].includes(post.post_type)) throw dbError('violates news_posts_post_type check', '23514');
+    post.is_pinned = Boolean(post.is_pinned);
+    if (post.post_type !== 'notice' && (post.is_pinned || post.expires_at)) {
+      throw dbError('violates news_posts_notice_options check', '23514');
+    }
+    if (post.expires_at) {
+      const expiry = new Date(post.expires_at);
+      if (Number.isNaN(expiry.getTime())) throw dbError('violates news_posts_expires_at check', '23514');
+      post.expires_at = expiry.toISOString();
+    } else post.expires_at = null;
+  }
+
   function checkMatch(m, data, isInsert, before) {
     if (m.home_player_id === m.away_player_id) throw dbError('violates matches_distinct_players_chk', '23514');
     if (!['upcoming', 'live', 'completed', 'postponed'].includes(m.status)) throw dbError('violates matches_status check', '23514');
@@ -164,6 +183,7 @@
     players: () => ({ status: 'pending', notes: null, approved_at: null, avatar_url: null }),
     matches: () => ({ status: 'upcoming', round: null, home_score: null, away_score: null, venue: null, notes: null }),
     point_adjustments: () => ({}),
+    news_posts: () => ({ post_type: 'news', is_pinned: false, expires_at: null }),
   };
 
   function applyInsert(data, table, values) {
@@ -175,6 +195,7 @@
     }
     if (table === 'players') normalisePlayer(row, data, true);
     if (table === 'matches') checkMatch(row, data, true);
+    if (table === 'news_posts') normaliseNewsPost(row);
     if (table === 'point_adjustments') {
       row.points = Number(row.points);
       row.reason = clean(row.reason);
@@ -200,6 +221,7 @@
     }
     if (table === 'players') normalisePlayer(next, data, false, before);
     if (table === 'matches') checkMatch(next, data, false, before);
+    if (table === 'news_posts') normaliseNewsPost(next);
     Object.assign(row, next);
     return row;
   }
@@ -425,19 +447,19 @@
       const incoming = JSON.parse(text);
       if (!incoming || incoming.app !== 'efootball-tournament') throw dbError('This file is not an eFootball tournament backup.', 'INVALID');
       const data = read();
-      ['tournaments', 'players', 'matches', 'point_adjustments'].forEach((t) => { data[t] = Array.isArray(incoming[t]) ? incoming[t] : []; });
+      ['tournaments', 'players', 'matches', 'point_adjustments', 'news_posts'].forEach((t) => { data[t] = Array.isArray(incoming[t]) ? incoming[t] : []; });
       write(data);
     },
 
     resetData() {
       const data = read();
-      ['tournaments', 'players', 'matches', 'point_adjustments'].forEach((t) => { data[t] = []; });
+      ['tournaments', 'players', 'matches', 'point_adjustments', 'news_posts'].forEach((t) => { data[t] = []; });
       write(data);
     },
 
     loadDemo() {
       const data = read();
-      ['tournaments', 'players', 'matches', 'point_adjustments'].forEach((t) => { data[t] = []; });
+      ['tournaments', 'players', 'matches', 'point_adjustments', 'news_posts'].forEach((t) => { data[t] = []; });
       const t = {
         ...DEFAULTS.tournaments(), id: uuid(), created_at: now(), updated_at: now(),
         name: 'eFootball Champions Cup', season: 'Season 1', is_active: true, is_published: true,

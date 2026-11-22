@@ -149,7 +149,7 @@
         section.innerHTML = `
           ${admin.panelHead(usesSupabase ? 'Import browser backup to Supabase' : 'Move browser data to this Sheet', 'Export a backup from the browser that currently has your tournament data, then import it here.')}
           <div class="form-alert form-alert--info mb-4">${ui.icon('info', '')}<span>${usesSupabase
-            ? 'Supabase import only works when its tournament tables are empty; existing data is never deleted.'
+            ? 'Supabase import only works when its tournament and news tables are empty; existing data is never deleted.'
             : 'Import replaces all tournament data in the Google Sheet. Use this only for your initial migration or when you intend to replace the Sheet data.'}</span></div>
           <div class="flex flex-wrap gap-3">
             <button type="button" class="btn btn-secondary btn-sm" data-local-export>${ui.icon('download', '')}Export this browser's local data</button>

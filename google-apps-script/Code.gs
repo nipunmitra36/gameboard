@@ -1,4 +1,4 @@
-const TABLE_NAMES = ['tournaments', 'players', 'matches', 'point_adjustments'];
+const TABLE_NAMES = ['tournaments', 'players', 'matches', 'point_adjustments', 'news_posts'];
 const PRIVATE_TABLES = ['players', 'point_adjustments'];
 const SCRIPT_PROPERTY_SHEET_ID = 'EF_SPREADSHEET_ID';
 const SCRIPT_PROPERTY_ADMIN_EMAIL = 'EF_ADMIN_EMAIL';
@@ -134,7 +134,7 @@ function importBackup_(backup, accessToken) {
   }
   const replacement = {};
   TABLE_NAMES.forEach((name) => {
-    const rows = backup[name];
+    const rows = name === 'news_posts' && backup[name] === undefined ? [] : backup[name];
     if (!Array.isArray(rows) || rows.length > 5000 || rows.some((row) => !row || !row.id || typeof row !== 'object')) {
       throw apiError_('The backup contains invalid or too many records.', 'INVALID');
     }
@@ -302,6 +302,10 @@ function publicRows_(table, isAdmin, adminEmail) {
   const tournaments = readTable_('tournaments');
   const visibleTournaments = tournaments.filter((row) => row.is_published || isAdmin);
   const visibleIds = new Set(visibleTournaments.map((row) => row.id));
+  if (table === 'news_posts') {
+    const posts = readTable_('news_posts');
+    return isAdmin ? posts : posts.filter((row) => !row.expires_at || new Date(row.expires_at).getTime() > Date.now());
+  }
   if (table === 'tournaments') return visibleTournaments;
   if (table === 'matches') return readTable_('matches').filter((row) => visibleIds.has(row.tournament_id));
   if (table === 'players' || table === 'point_adjustments') return readTable_(table);
@@ -329,6 +333,22 @@ function publicRows_(table, isAdmin, adminEmail) {
 }
 
 function validateAdminRow_(table, row, accessToken, before) {
+  if (table === 'news_posts') {
+    row.title = String(row.title || '').trim();
+    row.content = String(row.content || '').trim();
+    if (row.title.length < 3 || row.title.length > 120) throw apiError_('violates news_posts_title check', '23514');
+    if (row.content.length < 1 || row.content.length > 5000) throw apiError_('violates news_posts_content check', '23514');
+    if (!['news', 'notice'].includes(row.post_type)) throw apiError_('violates news_posts_post_type check', '23514');
+    row.is_pinned = Boolean(row.is_pinned);
+    if (row.post_type !== 'notice' && (row.is_pinned || row.expires_at)) {
+      throw apiError_('violates news_posts_notice_options check', '23514');
+    }
+    if (row.expires_at) {
+      const expiry = new Date(row.expires_at);
+      if (Number.isNaN(expiry.getTime())) throw apiError_('violates news_posts_expires_at check', '23514');
+      row.expires_at = expiry.toISOString();
+    } else row.expires_at = null;
+  }
   if (table === 'tournaments') {
     if (clean_(row.name).length < 3 || clean_(row.name).length > 120) throw apiError_('violates tournaments_name check', '23514');
     if (row.end_date && row.start_date && row.end_date < row.start_date) throw apiError_('violates tournaments_dates_chk', '23514');

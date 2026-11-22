@@ -1,4 +1,4 @@
-/* Home page: hero + inline registration, matches, results, top 4, players, championship, rules. */
+/* Home page: hero, footer registration, matches, results, top 4, players, championship, rules. */
 EF.boot(async function homePage() {
   'use strict';
   const { qs, escapeHtml: e, formatDate, formatTime } = EF.utils;
@@ -13,6 +13,7 @@ EF.boot(async function homePage() {
     meta: qs('#hero-meta'),
     joinPanel: qs('#home-join-panel'),
     slots: qs('#home-slots'),
+    announcements: qs('#home-announcements'),
     upcoming: qs('#home-upcoming'),
     results: qs('#home-results'),
     table: qs('#home-table'),
@@ -71,6 +72,29 @@ EF.boot(async function homePage() {
     el.results.innerHTML = rowsSkeleton(3);
     el.table.innerHTML = `<div class="p-3 grid gap-2">${Array.from({ length: 4 }, () => '<div class="skeleton h-10"></div>').join('')}</div>`;
     el.players.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton h-[150px]"></div>').join('');
+    el.announcements.innerHTML = rowsSkeleton(3);
+  }
+
+  async function loadAnnouncements() {
+    try {
+      const posts = (await EF.api.getPublicNews()).slice(0, 3);
+      el.announcements.innerHTML = posts.length ? posts.map((post) => `
+        <article class="glass p-4 sm:p-5">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="badge ${post.post_type === 'notice' ? 'badge--upcoming' : 'badge--neutral'}">${post.post_type === 'notice' ? 'Notice' : 'News'}</span>
+            ${post.is_pinned ? `<span class="badge badge--approved">${ui.icon('pin', '')}Pinned</span>` : ''}
+            <time class="text-xs text-muted">${e(EF.utils.formatDateTime(post.created_at))}</time>
+          </div>
+          <h3 class="font-display text-xl font-bold text-white mt-3">${e(post.title)}</h3>
+          <p class="text-sm text-soft leading-relaxed whitespace-pre-line mt-2">${e(String(post.content).slice(0, 220))}${post.content.length > 220 ? '…' : ''}</p>
+        </article>`).join('')
+        : `<div class="col-span-full glass">${ui.state.empty({ icon: 'newspaper', title: 'No updates yet', message: 'Tournament news and notices will appear here.' })}</div>`;
+      ui.icons();
+    } catch (err) {
+      console.error(err);
+      el.announcements.innerHTML = `<div class="col-span-full">${ui.state.error({ message: EF.api.friendlyError(err), retry: false })}</div>`;
+      ui.icons();
+    }
   }
 
   function showError(message) {
@@ -190,19 +214,22 @@ EF.boot(async function homePage() {
 
   async function load({ silent = false } = {}) {
     if (!silent) showLoading();
+    const announcements = loadAnnouncements();
     try {
       const d = await EF.api.loadPublicData();
-      if (!d.tournament) { renderNoTournament(); return d; }
+      if (!d.tournament) { renderNoTournament(); await announcements; return d; }
       renderHero(d);
       renderMatches(d);
       renderTable(d);
       renderPlayers(d);
       renderRules(d.tournament);
       ui.icons();
+      await announcements;
       return d;
     } catch (err) {
       console.error(err);
       showError(EF.api.friendlyError(err));
+      await announcements;
       return null;
     }
   }
@@ -212,5 +239,5 @@ EF.boot(async function homePage() {
 
   initHeroVideo();
   const data = await load();
-  if (data) EF.api.watch({ key: 'home', onChange: () => load({ silent: true }) });
+  if (data) EF.api.watch({ key: 'home', tables: ['matches', 'tournaments', 'news_posts'], onChange: () => load({ silent: true }) });
 });

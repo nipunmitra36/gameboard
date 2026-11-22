@@ -10,6 +10,7 @@
     { id: 'players', label: 'Player List', href: 'players.html', icon: 'users' },
     { id: 'fixtures', label: 'Fixtures', href: 'fixtures.html', icon: 'calendar-days' },
     { id: 'standings', label: 'Point Table', href: 'standings.html', icon: 'trophy' },
+    { id: 'news', label: 'News', href: 'news.html', icon: 'newspaper' },
     { id: 'rules', label: 'Rules', href: 'index.html#rules', icon: 'book-open' },
   ];
 

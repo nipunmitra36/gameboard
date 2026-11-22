@@ -13,6 +13,7 @@
     { id: 'results', label: 'Results', icon: 'goal', badge: (s) => s.matches.filter((m) => m.status === 'live').length },
     { id: 'points', label: 'Point Table', icon: 'list-ordered' },
     { id: 'rules', label: 'Rules', icon: 'book-open' },
+    { id: 'news', label: 'News & Notices', icon: 'newspaper' },
     { id: 'settings', label: 'Settings', icon: 'settings' },
   ];
 
@@ -163,7 +164,7 @@
       if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
 
-    if (!state.tournament && admin.current !== 'settings') {
+    if (!state.tournament && !['settings', 'news'].includes(admin.current)) {
       view.innerHTML = `<div class="glass">${ui.state.empty({
         icon: 'trophy',
         title: 'No tournament yet',
@@ -282,7 +283,7 @@
     if (!unwatch) {
       unwatch = api.watch({
         key: 'admin',
-        tables: ['players', 'matches', 'point_adjustments', 'tournaments'],
+        tables: ['players', 'matches', 'point_adjustments', 'tournaments', 'news_posts'],
         onChange: onRemoteChange,
       });
     }

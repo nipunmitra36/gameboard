@@ -17,7 +17,7 @@
     INVALID_AVATAR: 'That profile photo could not be used. Upload a JPG, PNG or WebP image.',
     MATCH_PLAYERS_INVALID: 'Both players must be approved players in this tournament.',
     ADJUSTMENT_PLAYER_INVALID: 'The selected player does not belong to this tournament.',
-    IMPORT_REQUIRES_EMPTY_DATABASE: 'Backup import only works when the Supabase tournament tables are empty. No existing records were changed.',
+    IMPORT_REQUIRES_EMPTY_DATABASE: 'Backup import only works when the Supabase tournament and news tables are empty. No existing records were changed.',
     INVALID_BACKUP: 'This file is not a valid eFootball tournament backup.',
   };
 
@@ -108,6 +108,13 @@
     async getAdjustmentTotals(tournamentId) {
       return (await run(db().from('player_adjustment_totals').select('player_id,points')
         .eq('tournament_id', tournamentId))) || [];
+    },
+
+    async getPublicNews() {
+      const posts = (await run(db().from('news_posts').select('*')
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false }))) || [];
+      return posts.filter((post) => !post.expires_at || new Date(post.expires_at) > new Date());
     },
 
     /** Attach player objects (home / away) to match rows. */
@@ -289,6 +296,23 @@
 
     async createAdjustment(tournamentId, values) {
       return run(db().from('point_adjustments').insert({ ...values, tournament_id: tournamentId }).select().single());
+    },
+
+    async listNewsPosts() {
+      return (await run(db().from('news_posts').select('*')
+        .order('created_at', { ascending: false }))) || [];
+    },
+
+    async createNewsPost(values) {
+      return run(db().from('news_posts').insert(values).select().single());
+    },
+
+    async updateNewsPost(id, values) {
+      return run(db().from('news_posts').update(values).eq('id', id).select().single());
+    },
+
+    async deleteNewsPost(id) {
+      return run(db().from('news_posts').delete().eq('id', id));
     },
   };
 

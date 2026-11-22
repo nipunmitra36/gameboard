@@ -9,6 +9,7 @@ alter table public.players           enable row level security;
 alter table public.matches           enable row level security;
 alter table public.admin_users       enable row level security;
 alter table public.point_adjustments enable row level security;
+alter table public.news_posts        enable row level security;
 
 -- ---------------------------------------------------------------------
 --  Table privileges (defence in depth on top of RLS)
@@ -17,7 +18,7 @@ grant usage on schema public to anon, authenticated;
 
 revoke insert, update, delete, truncate
   on public.tournaments, public.players, public.matches,
-     public.admin_users, public.point_adjustments
+     public.admin_users, public.point_adjustments, public.news_posts
   from anon;
 
 -- Public visitors never read the raw players / adjustments tables;
@@ -33,6 +34,8 @@ grant select on public.tournaments, public.matches to anon, authenticated;
 grant select, insert, update, delete on public.tournaments, public.players, public.matches to authenticated;
 grant select, insert on public.point_adjustments to authenticated;
 grant select on public.admin_users to authenticated;
+grant select on public.news_posts to anon, authenticated;
+grant insert, update, delete on public.news_posts to authenticated;
 
 revoke execute on function public.register_player(text, text, text, text, text) from public;
 grant  execute on function public.register_player(text, text, text, text, text) to anon, authenticated;
@@ -145,6 +148,36 @@ create policy admin_users_read on public.admin_users
   using (user_id = auth.uid() or public.is_admin());
 
 -- ---------------------------------------------------------------------
+--  news_posts (public read, admin-only writes)
+-- ---------------------------------------------------------------------
+drop policy if exists news_posts_public_read   on public.news_posts;
+drop policy if exists news_posts_admin_insert on public.news_posts;
+drop policy if exists news_posts_admin_update on public.news_posts;
+drop policy if exists news_posts_admin_delete on public.news_posts;
+
+create policy news_posts_public_read on public.news_posts
+  for select to anon, authenticated
+  using (
+    public.is_admin()
+    or post_type = 'news'
+    or expires_at is null
+    or expires_at > now()
+  );
+
+create policy news_posts_admin_insert on public.news_posts
+  for insert to authenticated
+  with check (public.is_admin());
+
+create policy news_posts_admin_update on public.news_posts
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy news_posts_admin_delete on public.news_posts
+  for delete to authenticated
+  using (public.is_admin());
+
+-- ---------------------------------------------------------------------
 --  Realtime: push fixture/result changes to open browsers.
 --  Each table's RLS still applies to what subscribers receive.
 -- ---------------------------------------------------------------------
@@ -152,7 +185,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['matches', 'tournaments', 'players', 'point_adjustments'] loop
+  foreach t in array array['matches', 'tournaments', 'players', 'point_adjustments', 'news_posts'] loop
     begin
       execute format('alter publication supabase_realtime add table public.%I', t);
     exception
