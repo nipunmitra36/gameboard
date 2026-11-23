@@ -456,29 +456,26 @@
     : '<span class="text-subtle">—</span>');
 
   /** Tight table for narrow panels: Pos, Player, MP, W, D, L, GD, Pts. */
+  /** Home "Top 4": ranked player rows with medal badges, photos and key stats. */
   ui.miniStandingsTable = function (rows, { limit = 4 } = {}) {
     const gd = (n) => (n > 0 ? `+${n}` : String(n));
     return `
-      <div class="table-wrap">
-        <table class="ef-table ef-table--tight">
-          <thead><tr>
-            <th class="num" scope="col">#</th><th scope="col">Player</th>
-            <th class="num" scope="col" title="Matches played">MP</th><th class="num" scope="col" title="Wins">W</th>
-            <th class="num" scope="col" title="Draws">D</th><th class="num" scope="col" title="Losses">L</th>
-            <th class="num" scope="col" title="Goal difference">GD</th><th class="num" scope="col" title="Points">Pts</th>
-          </tr></thead>
-          <tbody>
-            ${rows.slice(0, limit).map((r) => `
-              <tr class="${r.position === 1 && r.played > 0 ? 'is-leader' : ''}">
-                <td class="num font-semibold text-white">${r.position}</td>
-                <td><div class="flex items-center gap-2 min-w-0">${ui.crest(r.player.team_name, 'sm')}<span class="font-semibold text-white truncate max-w-[120px]" title="${e(r.player.team_name)}">${e(r.player.player_name)}</span></div></td>
-                <td class="num">${r.played}</td><td class="num">${r.wins}</td><td class="num">${r.draws}</td><td class="num">${r.losses}</td>
-                <td class="num ${r.gd > 0 ? 'text-neon' : r.gd < 0 ? 'text-danger' : ''}">${gd(r.gd)}</td>
-                <td class="num font-display text-lg font-extrabold text-white">${r.points}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+      <ol class="top-list">
+        ${rows.slice(0, limit).map((r) => `
+          <li class="top-row rank-${r.position <= 3 ? r.position : 'n'}${r.position === 1 && r.played > 0 ? ' is-leader' : ''}">
+            <span class="top-row__pos" aria-label="Position ${r.position}">${r.position}</span>
+            <span class="top-row__dp">${ui.avatar(r.player, 'md')}</span>
+            <div class="top-row__who">
+              <p class="top-row__name">${e(r.player.player_name)}</p>
+              <p class="top-row__line">
+                <span title="Played">${r.played} MP</span>
+                <span class="top-row__wdl" title="Wins / Draws / Losses"><b class="w">${r.wins}W</b><b class="d">${r.draws}D</b><b class="l">${r.losses}L</b></span>
+                <span class="${r.gd > 0 ? 'text-neon' : r.gd < 0 ? 'text-danger' : ''}" title="Goal difference">${gd(r.gd)} GD</span>
+              </p>
+            </div>
+            <div class="top-row__pts"><span>${r.points}</span><small>PTS</small></div>
+          </li>`).join('')}
+      </ol>`;
   };
 
   ui.standingsTable = function (rows, { limit, compact = false, showForm = true, showAdjustment = false } = {}) {
@@ -537,21 +534,43 @@
   ui.crest = (team, size = '') => `<span class="crest ${size ? `crest--${size}` : ''}" style="--h:${hue(team || '?')}" title="${e(team || '')}" aria-hidden="true">${e(initials(team || '?'))}</span>`;
 
   /** Compact one-line fixture/result row used in home page panels. */
+  /** Home match card: header (round + status/date), two players with photos, VS or the score. */
   ui.miniMatchRow = function (m) {
     const scored = Number.isInteger(m.home_score) && Number.isInteger(m.away_score) && (m.status === 'completed' || m.status === 'live');
-    const when = `${relativeDay(m.scheduled_at) || formatDate(m.scheduled_at, { day: 'numeric', month: 'short' })}, ${formatTime(m.scheduled_at)}`;
+    const day = relativeDay(m.scheduled_at) || formatDate(m.scheduled_at, { day: 'numeric', month: 'short' });
+    const home = m.home || { player_name: 'TBD' };
+    const away = m.away || { player_name: 'TBD' };
+    const done = m.status === 'completed' && scored;
+    const homeWin = done && m.home_score > m.away_score;
+    const awayWin = done && m.away_score > m.home_score;
+    const side = (p, win, lose, align) => `
+      <div class="mcard__side mcard__side--${align}${win ? ' is-win' : ''}${lose ? ' is-lose' : ''}">
+        <span class="mcard__dp">${ui.avatar(p, 'lg')}${win ? `<span class="mcard__crown">${ui.icon('crown', '')}</span>` : ''}</span>
+        <p class="mcard__name">${e(p.player_name || 'TBD')}</p>
+        <p class="mcard__team">${e(p.team_name || '—')}</p>
+      </div>`;
+    const status = m.status === 'live'
+      ? '<span class="mcard__chip mcard__chip--live"><span class="live-dot"></span>Live</span>'
+      : done
+        ? `<span class="mcard__chip mcard__chip--ft">${ui.icon('check', '')}Full time</span>`
+        : m.status === 'postponed'
+          ? `<span class="mcard__chip mcard__chip--warn">${ui.icon('clock', '')}Postponed</span>`
+          : `<span class="mcard__chip">${ui.icon('calendar', '')}${e(day)}</span>`;
     const mid = scored
-      ? `<p class="mini-row__score">${m.home_score} - ${m.away_score}</p>${m.status === 'live' ? '<p class="mini-row__meta !text-[#ff8399]"><span class="live-dot"></span>Live</p>' : `<p class="mini-row__meta">${ui.icon('calendar', '')}${e(when)}</p>`}`
-      : `<p class="mini-row__vs">VS</p><p class="mini-row__meta">${ui.icon('calendar', '')}${e(when)}</p>`;
-    const home = m.home || {};
-    const away = m.away || {};
+      ? `<div class="mcard__score${m.status === 'live' ? ' is-live' : ''}"><span class="${homeWin ? 'is-win' : ''}">${m.home_score}</span><i>:</i><span class="${awayWin ? 'is-win' : ''}">${m.away_score}</span></div>
+         <p class="mcard__when">${e(done ? day : formatTime(m.scheduled_at))}</p>`
+      : `<div class="mcard__vs">VS</div><p class="mcard__when">${ui.icon('clock', '')}${e(formatTime(m.scheduled_at))}</p>`;
     return `
-      <a href="fixtures.html" class="mini-row" title="${e(home.player_name || 'TBD')} vs ${e(away.player_name || 'TBD')}">
-        ${ui.crest(home.team_name || home.player_name, 'sm')}
-        <p class="mini-row__name" title="${e(home.team_name || '')}">${e(home.player_name || 'TBD')}</p>
-        <div class="mini-row__mid">${mid}</div>
-        <p class="mini-row__name text-right" title="${e(away.team_name || '')}">${e(away.player_name || 'TBD')}</p>
-        ${ui.crest(away.team_name || away.player_name, 'sm')}
+      <a href="fixtures.html" class="mcard mcard--${e(m.status)}" title="${e(home.player_name || 'TBD')} vs ${e(away.player_name || 'TBD')}">
+        <header class="mcard__head">
+          <span class="mcard__round">${m.round ? `Round ${e(m.round)}` : 'Match'}${m.venue ? ` · ${e(m.venue)}` : ''}</span>
+          ${status}
+        </header>
+        <div class="mcard__body">
+          ${side(home, homeWin, awayWin, 'home')}
+          <div class="mcard__mid">${mid}</div>
+          ${side(away, awayWin, homeWin, 'away')}
+        </div>
       </a>`;
   };
 

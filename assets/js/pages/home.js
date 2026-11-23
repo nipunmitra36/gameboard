@@ -23,7 +23,7 @@ EF.boot(async function homePage() {
     champ: qs('#champ-name'),
   };
 
-  const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[62px]"></div>').join('');
+  const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[132px] rounded-2xl"></div>').join('');
   const panelEmpty = (icon, title, message) => `<div class="py-2">${ui.state.empty({ icon, title, message })}</div>`;
   let countdownInterval = null;
   let playersInterval = null;
@@ -118,7 +118,7 @@ EF.boot(async function homePage() {
   function showLoading() {
     el.upcoming.innerHTML = rowsSkeleton(3);
     el.results.innerHTML = rowsSkeleton(3);
-    el.table.innerHTML = `<div class="p-3 grid gap-2">${Array.from({ length: 4 }, () => '<div class="skeleton h-10"></div>').join('')}</div>`;
+    el.table.innerHTML = `<div class="grid gap-2.5">${Array.from({ length: 4 }, () => '<div class="skeleton h-[66px] rounded-2xl"></div>').join('')}</div>`;
     el.players.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton h-[300px] rounded-2xl"></div>').join('');
     el.announcements.innerHTML = rowsSkeleton(3);
   }
