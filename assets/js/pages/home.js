@@ -119,7 +119,7 @@ EF.boot(async function homePage() {
     el.upcoming.innerHTML = rowsSkeleton(3);
     el.results.innerHTML = rowsSkeleton(3);
     el.table.innerHTML = `<div class="p-3 grid gap-2">${Array.from({ length: 4 }, () => '<div class="skeleton h-10"></div>').join('')}</div>`;
-    el.players.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton h-[150px]"></div>').join('');
+    el.players.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton h-[300px] rounded-2xl"></div>').join('');
     el.announcements.innerHTML = rowsSkeleton(3);
   }
 
@@ -247,11 +247,16 @@ EF.boot(async function homePage() {
 
     const slide = (p, index, clone = false) => `
       <div class="player-carousel__slide" role="group" aria-label="Player ${index + 1} of ${latestPlayers.length}"${clone ? ' aria-hidden="true" inert' : ''}>
-        <a href="players.html" class="player-card"${clone ? ' tabindex="-1"' : ''}>
-          ${ui.avatar(p, 'xl')}
-          <p class="font-display text-lg font-extrabold text-white mt-3 truncate">${e(p.player_name)}</p>
-          <p class="text-sm text-soft truncate">${e(p.team_name)}</p>
-          <p class="status-dot mt-2 ${p.status === 'approved' ? 'text-[#4ade80]' : 'text-warn'}">${p.status === 'approved' ? 'Active' : 'Pending'}</p>
+        <a href="players.html" class="player-card ${p.status === 'approved' ? 'is-active' : 'is-pending'}"${clone ? ' tabindex="-1"' : ''}>
+          <div class="player-card__media">
+            ${ui.avatar(p, 'xl')}
+            <span class="player-card__status">${p.status === 'approved' ? 'Active' : 'Pending'}</span>
+          </div>
+          <div class="player-card__body">
+            <p class="player-card__name">${e(p.player_name)}</p>
+            <p class="player-card__team">${ui.icon('shield', '')}<span>${e(p.team_name)}</span></p>
+            ${p.efootball_username ? `<p class="player-card__user">@${e(p.efootball_username)}</p>` : ''}
+          </div>
         </a>
       </div>`;
     const slides = latestPlayers.map((p, index) => slide(p, index));
