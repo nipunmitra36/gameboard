@@ -29,6 +29,7 @@ EF.boot(async function profilePage() {
       </div>`;
     const form = root.querySelector('[data-profile-email-form]');
     ui.liveClear(form);
+    form.addEventListener('input', () => ui.formAlert(form, ''));
     if (message) ui.formAlert(form, message);
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -61,13 +62,13 @@ EF.boot(async function profilePage() {
         <form class="mt-6 grid gap-4" data-profile-code-form novalidate>
           ${ui.field({
             name: 'token',
-            label: '6-digit sign-in code',
+            label: 'Email sign-in code',
             icon: 'key-round',
-            placeholder: '123456',
+            placeholder: 'Enter the code from your email',
             required: true,
-            maxlength: 6,
+            maxlength: 10,
             autocomplete: 'one-time-code',
-            attrs: 'inputmode="numeric" pattern="[0-9]{6}"',
+            attrs: 'inputmode="numeric" pattern="[0-9]{6,10}"',
           })}
           <div data-form-alert hidden></div>
           <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('key-round')}Verify code</button>
@@ -79,12 +80,13 @@ EF.boot(async function profilePage() {
       </div>`;
     const form = root.querySelector('[data-profile-code-form]');
     ui.liveClear(form);
+    form.addEventListener('input', () => ui.formAlert(form, ''));
     if (message) ui.formAlert(form, message);
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       const token = String(form.elements.token.value || '').trim();
-      if (!/^\d{6}$/.test(token)) {
-        ui.showErrors(form, { token: 'Enter the 6-digit code from your email.' });
+      if (!/^\d{6,10}$/.test(token)) {
+        ui.showErrors(form, { token: 'Enter the numeric code from your email (6–10 digits).' });
         return;
       }
       const button = form.querySelector('[type="submit"]');

@@ -99,7 +99,7 @@ Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 
 Before switching from local mode, download **Settings → Export backup (.json)** in the browser that contains the current data. The import also offers **Export this browser's local data** after switching.
 
-Players can open **My Profile** and request a one-time email code using the same address as their registration. Only a confirmed email matching a player registration can read that player's safe profile fields. Players can update their player name, eFootball username and profile photo; changes apply to all registrations for that email. Tournament statistics are shown for published tournaments. This profile feature is Supabase-only.
+Players can open **My Profile** and request a one-time email code using the same address as their registration. The code must be included in the Supabase email template with `{{ .Token }}`; the profile form accepts numeric codes from 6 to 10 digits to support customized OTP lengths. Only a confirmed email matching a player registration can read that player's safe profile fields. Players can update their player name, eFootball username and profile photo; changes apply to all registrations for that email. Tournament statistics are shown for published tournaments. This profile feature is Supabase-only.
 
 ## 5. Run locally
 
