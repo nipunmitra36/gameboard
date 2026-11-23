@@ -1,7 +1,7 @@
 /* Home page: hero and registration, matches, results, top 4, players, championship, rules. */
 EF.boot(async function homePage() {
   'use strict';
-  const { qs, escapeHtml: e, formatDate, formatTime } = EF.utils;
+  const { qs, escapeHtml: e, formatDate, formatTime, relativeDay } = EF.utils;
   const ui = EF.ui;
 
   const el = {
@@ -21,6 +21,8 @@ EF.boot(async function homePage() {
     players: qs('#home-players'),
     playersTotal: qs('#players-total'),
     champ: qs('#champ-name'),
+    ticker: qs('#home-ticker'),
+    tickerWrap: qs('[data-ticker]'),
   };
 
   const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[132px] rounded-2xl"></div>').join('');
@@ -125,7 +127,8 @@ EF.boot(async function homePage() {
 
   async function loadAnnouncements() {
     try {
-      const posts = (await EF.api.getPublicNews()).slice(0, 3);
+      const allPosts = await EF.api.getPublicNews();
+      const posts = allPosts.slice(0, 3);
       el.announcements.innerHTML = posts.length ? posts.map((post) => `
         <article class="glass p-4 sm:p-5">
           <div class="flex flex-wrap items-center gap-2">
@@ -138,10 +141,12 @@ EF.boot(async function homePage() {
         </article>`).join('')
         : `<div class="col-span-full glass">${ui.state.empty({ icon: 'newspaper', title: 'No updates yet', message: 'Tournament news and notices will appear here.' })}</div>`;
       ui.icons();
+      return allPosts;
     } catch (err) {
       console.error(err);
       el.announcements.innerHTML = `<div class="col-span-full">${ui.state.error({ message: EF.api.friendlyError(err), retry: false })}</div>`;
       ui.icons();
+      return [];
     }
   }
 
@@ -375,18 +380,60 @@ EF.boot(async function homePage() {
     }, 150);
   });
 
+  /** Scrolling updates bar under the hero: notices, news, live/next matches, results, registration. */
+  function renderTicker(d, posts) {
+    const items = [];
+    const name = (p) => e((p && p.player_name) || 'TBD');
+    const when = (iso) => `${relativeDay(iso) || formatDate(iso, { day: 'numeric', month: 'short' })}, ${formatTime(iso)}`;
+    const t = d && d.tournament;
+    const matches = (d && d.matches) || [];
+
+    (posts || []).filter((p) => p.post_type === 'notice').slice(0, 3)
+      .forEach((p) => items.push(['megaphone', 'Notice', e(p.title), 'notice']));
+    matches.filter((m) => m.status === 'live').slice(0, 2)
+      .forEach((m) => items.push(['radio', 'Live', `${name(m.home)} <b>${Number.isInteger(m.home_score) ? `${m.home_score} - ${m.away_score}` : 'vs'}</b> ${name(m.away)}`, 'live']));
+    matches.filter((m) => m.status === 'upcoming' && new Date(m.scheduled_at) >= Date.now() - 3 * 3600 * 1000)
+      .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at)).slice(0, 3)
+      .forEach((m) => items.push(['calendar-clock', 'Next match', `${name(m.home)} <b>vs</b> ${name(m.away)} · ${e(when(m.scheduled_at))}`, 'match']));
+    matches.filter((m) => m.status === 'completed' && Number.isInteger(m.home_score))
+      .sort((a, b) => new Date(b.scheduled_at) - new Date(a.scheduled_at)).slice(0, 3)
+      .forEach((m) => items.push(['flag', 'Result', `${name(m.home)} <b>${m.home_score} - ${m.away_score}</b> ${name(m.away)}`, 'result']));
+    if (d && d.standings && d.standings[0] && d.standings[0].played > 0) {
+      const top = d.standings[0];
+      items.push(['crown', 'Leader', `${name(top.player)} · <b>${top.points} pts</b>`, 'leader']);
+    }
+    if (t && t.registration_open) {
+      const left = t.max_players ? Math.max(0, t.max_players - d.players.length) : null;
+      items.push(['user-plus', 'Registration', left === null ? 'Open now. Join the tournament!' : left ? `Open · <b>${left}</b> ${left === 1 ? 'slot' : 'slots'} left` : 'Full', 'reg']);
+    }
+    (posts || []).filter((p) => p.post_type === 'news').slice(0, 3)
+      .forEach((p) => items.push(['newspaper', 'News', e(p.title), 'news']));
+
+    if (!items.length) { el.tickerWrap.hidden = true; el.ticker.innerHTML = ''; return; }
+    const html = items.map(([icon, label, text, tone]) => `
+      <span class="ticker__item ticker__item--${tone}">
+        <span class="ticker__tag">${ui.icon(icon, '')}${label}</span>
+        <span class="ticker__text">${text}</span>
+      </span><span class="ticker__sep" aria-hidden="true"></span>`).join('');
+    // Two copies make the loop seamless; the second is hidden from screen readers.
+    el.ticker.innerHTML = `<div class="ticker__group">${html}</div><div class="ticker__group" aria-hidden="true">${html}</div>`;
+    el.ticker.style.setProperty('--ticker-duration', `${Math.max(25, items.length * 7)}s`);
+    el.tickerWrap.hidden = false;
+    ui.icons();
+  }
+
   async function load({ silent = false } = {}) {
     if (!silent) showLoading();
     const announcements = loadAnnouncements();
     try {
       const d = await EF.api.loadPublicData();
-      if (!d.tournament) { renderNoTournament(); await announcements; return d; }
+      if (!d.tournament) { renderNoTournament(); renderTicker(null, await announcements); return d; }
       renderHero(d);
       renderMatches(d);
       renderTable(d);
       renderPlayers(d);
       ui.icons();
-      await announcements;
+      renderTicker(d, await announcements);
       return d;
     } catch (err) {
       console.error(err);
