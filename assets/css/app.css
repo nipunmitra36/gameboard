@@ -1486,3 +1486,52 @@ a:hover > .ef-logo .ef-logo__ball, .ef-logo:hover .ef-logo__ball { animation-dur
 a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
 @keyframes ef-ball-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ef-logo__ball, .ef-logo__ring { animation: none; } }
+
+/* ---------- Admin: fixture creation (chooser + automatic generator) ---------- */
+.ef-modal__panel--xl { max-width: 1000px; }
+.fx-choice { position: relative; display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px; text-align: left; border-radius: 16px; background: rgba(8, 18, 70, 0.6); border: 1px solid rgba(140, 160, 255, 0.25); transition: border-color 0.2s, background 0.2s, transform 0.2s; }
+.fx-choice:hover, .fx-choice:focus-visible { border-color: rgba(var(--neon-rgb), 0.7); background: rgba(14, 28, 96, 0.75); transform: translateY(-1px); }
+.fx-choice.is-recommended { border-color: rgba(var(--neon-rgb), 0.45); background: linear-gradient(120deg, rgba(var(--neon-rgb), 0.08), rgba(8, 18, 70, 0.6) 55%); }
+.fx-choice__icon { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; border-radius: 14px; color: #0a1240; background: var(--neon); }
+.fx-choice:not(.is-recommended) .fx-choice__icon { color: #b9c8ff; background: rgba(var(--volt-rgb), 0.2); }
+.fx-choice__icon svg { width: 24px; height: 24px; }
+.fx-choice__text { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.fx-choice__title { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 19px; font-weight: 800; color: #fff; }
+.fx-choice__tag { padding: 2px 8px; border-radius: 999px; font-family: inherit; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--neon); border: 1px solid rgba(var(--neon-rgb), 0.5); }
+.fx-choice__desc { font-size: 13px; line-height: 1.5; color: var(--text-soft); }
+.fx-choice__meta { font-size: 12px; font-weight: 600; color: var(--neon); }
+.fx-choice__arrow { width: 20px; height: 20px; flex-shrink: 0; color: var(--subtle); }
+
+.fx-step { padding: 16px; border-radius: 16px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.07); }
+.fx-step__title { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-family: var(--font-display); font-size: 16px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; }
+.fx-step__title span { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 13px; color: #0a1240; background: var(--neon); }
+.fx-step .flex > .fx-step__title { margin-bottom: 0; }
+.fx-stat { padding: 10px; border-radius: 12px; text-align: center; background: rgba(4, 10, 40, 0.5); border: 1px solid rgba(140, 160, 255, 0.15); }
+.fx-stat p { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted, #8b9cc0); }
+.fx-stat b { display: block; margin-top: 2px; font-family: var(--font-display); font-size: 24px; font-weight: 800; color: #fff; }
+.fx-stat:last-child { border-color: rgba(var(--neon-rgb), 0.45); }
+.fx-stat:last-child b { color: var(--neon); }
+
+.fx-list { display: grid; gap: 14px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+.fx-round__title { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--neon); background: #0a1440; }
+.fx-round__title span { font-weight: 600; letter-spacing: 0.04em; text-transform: none; color: var(--text-soft); }
+.fx-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(8, 18, 70, 0.55); border: 1px solid rgba(140, 160, 255, 0.16); transition: border-color 0.2s, opacity 0.2s; }
+.fx-row.is-edited { border-color: rgba(var(--warn-rgb), 0.55); }
+.fx-row.is-removed { opacity: 0.45; }
+.fx-row.is-removed .fx-row__teams { text-decoration: line-through; }
+.fx-row__when { display: flex; gap: 6px; }
+.fx-input.input { height: 36px; padding: 0 8px; border-radius: 9px; font-size: 13px; }
+.fx-row__when input[type='date'] { width: 140px; }
+.fx-row__when input[type='time'] { width: 104px; }
+.fx-row__teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; }
+.fx-row__p { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; font-size: 14px; font-weight: 600; color: #fff; }
+.fx-row__p--away { justify-content: flex-start; }
+.fx-row__p > span:not(.avatar) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-row__p .avatar { border-radius: 50%; }
+.fx-row__vs { font-family: var(--font-display); font-style: italic; font-weight: 900; font-size: 13px; color: var(--neon); }
+.fx-row__actions { display: flex; gap: 6px; }
+@media (max-width: 720px) {
+  .fx-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .fx-row__when { grid-column: 1 / -1; }
+  .fx-row__when input { flex: 1; width: auto !important; }
+}

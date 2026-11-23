@@ -192,6 +192,50 @@
     return a;
   }
 
+  /** Step 0: choose how to create fixtures. */
+  admin.openFixtureChooser = function () {
+    const approved = admin.approvedPlayers();
+    if (approved.length < 2) {
+      ui.toast('You need at least two approved players before creating fixtures.', 'warning');
+      return;
+    }
+    const n = approved.length;
+    const modal = ui.modal({
+      title: 'Create fixtures',
+      size: 'md',
+      body: `
+        <div class="grid gap-3">
+          <p class="text-sm text-muted">You have <strong class="text-white">${n} approved players</strong>. How do you want to create the fixtures?</p>
+          <button type="button" class="fx-choice is-recommended" data-mode="auto">
+            <span class="fx-choice__icon">${ui.icon('wand-sparkles', '')}</span>
+            <span class="fx-choice__text">
+              <span class="fx-choice__title">Automatic <span class="fx-choice__tag">Recommended</span></span>
+              <span class="fx-choice__desc">Generate a full round robin (single or double) in one click. Preview it, then change dates, times, home/away or remove matches before saving.</span>
+              <span class="fx-choice__meta">Double round robin: ${n * (n - 1)} matches · Single: ${n * (n - 1) / 2} matches</span>
+            </span>
+            ${ui.icon('chevron-right', 'fx-choice__arrow')}
+          </button>
+          <button type="button" class="fx-choice" data-mode="manual">
+            <span class="fx-choice__icon">${ui.icon('pencil-line', '')}</span>
+            <span class="fx-choice__text">
+              <span class="fx-choice__title">Manual</span>
+              <span class="fx-choice__desc">Pick two players and set the date, time and round for a single match yourself.</span>
+            </span>
+            ${ui.icon('chevron-right', 'fx-choice__arrow')}
+          </button>
+        </div>`,
+    });
+    modal.body.addEventListener('click', (ev) => {
+      const choice = ev.target.closest('[data-mode]');
+      if (!choice) return;
+      modal.close();
+      if (choice.dataset.mode === 'auto') admin.openFixtureGenerator();
+      else admin.openFixtureForm();
+    });
+    ui.icons();
+  };
+
+  /** Automatic: settings on top, an editable match list below. */
   admin.openFixtureGenerator = function () {
     const approved = admin.approvedPlayers();
     if (approved.length < 2) {
@@ -205,33 +249,44 @@
     const tomorrow = new Date(Date.now() + 86400000);
 
     const modal = ui.modal({
-      title: 'Auto-generate fixtures',
-      size: 'lg',
+      title: 'Automatic fixtures',
+      size: 'xl',
       body: `
         <form novalidate class="grid gap-5" data-gen-form>
           <div data-form-alert hidden></div>
-          <div class="grid sm:grid-cols-2 gap-4">
-            ${ui.field({ name: 'legs', label: 'Format', as: 'select', value: defaultLegs, options: [
-              { value: '2', label: 'Double round robin (home & away)' },
-              { value: '1', label: 'Single round robin (play once)' },
-            ] })}
-            ${ui.field({ name: 'order', label: 'Player order', as: 'select', value: 'shuffle', options: [
-              { value: 'shuffle', label: 'Random draw' },
-              { value: 'name', label: 'Alphabetical' },
-            ] })}
-          </div>
-          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            ${ui.field({ name: 'start_date', label: 'First match day', type: 'date', value: toDateInput(tomorrow), required: true })}
-            ${ui.field({ name: 'kickoff', label: 'First kickoff', type: 'time', value: '20:00', required: true, hint: 'Your local time' })}
-            ${ui.field({ name: 'gap_minutes', label: 'Minutes between matches', type: 'number', min: 0, max: 720, value: 30, hint: 'Same day, one after another' })}
-            ${ui.field({ name: 'gap_days', label: 'Days between rounds', type: 'number', min: 0, max: 60, value: 1, hint: '0 = all rounds on one day' })}
-          </div>
-          ${ui.field({ name: 'venue', label: 'Venue / Lobby (optional)', maxlength: 80, placeholder: 'e.g. Online' })}
-          <div class="rounded-xl border border-white/10 bg-white/[.03] p-4" data-gen-summary></div>
+          <section class="fx-step">
+            <p class="fx-step__title"><span>1</span>Settings</p>
+            <div class="grid sm:grid-cols-2 gap-4">
+              ${ui.field({ name: 'legs', label: 'Format', as: 'select', value: defaultLegs, options: [
+                { value: '2', label: 'Double round robin (home & away)' },
+                { value: '1', label: 'Single round robin (play once)' },
+              ] })}
+              ${ui.field({ name: 'order', label: 'Player order', as: 'select', value: 'shuffle', options: [
+                { value: 'shuffle', label: 'Random draw' },
+                { value: 'name', label: 'Alphabetical' },
+              ] })}
+            </div>
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+              ${ui.field({ name: 'start_date', label: 'First match day', type: 'date', value: toDateInput(tomorrow), required: true })}
+              ${ui.field({ name: 'kickoff', label: 'First kickoff', type: 'time', value: '20:00', required: true, hint: 'Your local time' })}
+              ${ui.field({ name: 'gap_minutes', label: 'Minutes between matches', type: 'number', min: 0, max: 720, value: 30 })}
+              ${ui.field({ name: 'gap_days', label: 'Days between rounds', type: 'number', min: 0, max: 60, value: 1, hint: '0 = all rounds on one day' })}
+            </div>
+            <div class="mt-4">${ui.field({ name: 'venue', label: 'Venue / Lobby (optional)', maxlength: 80, placeholder: 'e.g. Online' })}</div>
+          </section>
+          <section class="fx-step">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="fx-step__title"><span>2</span>Review &amp; customize</p>
+              <div class="flex flex-wrap gap-2">
+                <button type="button" class="btn btn-ghost btn-xs" data-reshuffle>${ui.icon('shuffle', '')}Re-draw</button>
+                <button type="button" class="btn btn-ghost btn-xs" data-reset hidden>${ui.icon('rotate-ccw', '')}Undo my changes</button>
+              </div>
+            </div>
+            <div data-gen-summary></div>
+          </section>
           <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-            <button type="button" class="btn btn-ghost" data-close>Cancel</button>
-            <button type="button" class="btn btn-secondary" data-reshuffle>${ui.icon('shuffle', '')}Re-draw</button>
-            <button type="submit" class="btn btn-primary" data-submit>${ui.icon('wand-sparkles', '')}Create fixtures</button>
+            <button type="button" class="btn btn-ghost" data-back>${ui.icon('arrow-left', '')}Back</button>
+            <button type="submit" class="btn btn-primary" data-submit>${ui.icon('check', '')}Create fixtures</button>
           </div>
         </form>`,
     });
@@ -239,8 +294,11 @@
     const form = modal.body.querySelector('[data-gen-form]');
     const summary = form.querySelector('[data-gen-summary]');
     const submit = form.querySelector('[data-submit]');
+    const resetBtn = form.querySelector('[data-reset]');
     let drawOrder = shuffle(approved);
     let plan = [];
+    // Admin edits, keyed by the generated pairing: { swap, removed, date, time }.
+    let overrides = new Map();
 
     // Pairings that already have a fixture are skipped, so re-running never duplicates.
     const taken = new Set(existing.map((m) => `${m.home_player_id}>${m.away_player_id}`));
@@ -264,77 +322,134 @@
           if (pairTaken(home, away, legs)) { skipped += 1; return; }
           let when = null;
           if (first) {
-            const d = new Date(first);
-            d.setDate(d.getDate() + r * gapDays);
-            d.setMinutes(d.getMinutes() + slot * gapMin);
-            when = d;
+            when = new Date(first);
+            when.setDate(when.getDate() + r * gapDays);
+            when.setMinutes(when.getMinutes() + slot * gapMin);
           }
           slot += 1;
-          plan.push({ round: lastRound + r + 1, home, away, when });
+          const key = `${home.id}>${away.id}`;
+          const o = overrides.get(key) || {};
+          const date = o.date || (when ? toDateInput(when) : '');
+          const time = o.time || (when ? toTimeInput(when) : '');
+          plan.push({
+            key,
+            round: lastRound + r + 1,
+            home: o.swap ? away : home,
+            away: o.swap ? home : away,
+            date,
+            time,
+            edited: Boolean(o.swap || o.date || o.time),
+            removed: Boolean(o.removed),
+          });
         });
       });
 
       const n = approved.length;
-      const perPlayer = (n - 1) * legs;
-      const total = (n * (n - 1) / 2) * legs;
+      const active = plan.filter((m) => !m.removed);
       const byRound = new Map();
       plan.forEach((m) => { if (!byRound.has(m.round)) byRound.set(m.round, []); byRound.get(m.round).push(m); });
 
       summary.innerHTML = `
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          ${[['Players', n], ['Rounds', rounds.length], ['Matches each', perPlayer], ['Total matches', total]].map(([l, val]) => `
-            <div class="rounded-lg bg-white/[.04] p-2.5"><p class="text-[11px] uppercase tracking-wider text-muted">${l}</p><p class="font-display text-2xl font-bold text-white">${val}</p></div>`).join('')}
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3">
+          ${[['Players', n], ['Rounds', rounds.length], ['Matches each', (n - 1) * legs], ['To create', active.length]].map(([l, val]) => `
+            <div class="fx-stat"><p>${l}</p><b>${val}</b></div>`).join('')}
         </div>
-        ${n % 2 ? '<p class="text-xs text-muted mt-3">Odd number of players: one player rests each round.</p>' : ''}
+        ${n % 2 ? `<p class="text-xs text-muted mt-3">${ui.icon('info', 'w-3.5 h-3.5 inline -mt-0.5')} Odd number of players: one player rests each round.</p>` : ''}
         ${skipped ? `<p class="text-xs text-warn mt-2">${skipped} pairing${skipped === 1 ? '' : 's'} already have a fixture and will be skipped.</p>` : ''}
-        <div class="mt-4 max-h-[300px] overflow-y-auto pr-1 grid gap-3">
+        <p class="text-xs text-muted mt-3">Change any match's date or time, ${ui.icon('arrow-left-right', 'w-3.5 h-3.5 inline -mt-0.5')} swap home/away, or ${ui.icon('x', 'w-3.5 h-3.5 inline -mt-0.5')} leave it out.</p>
+        <div class="fx-list mt-3">
           ${plan.length ? [...byRound.entries()].map(([round, ms]) => `
-            <div>
-              <p class="text-xs font-bold uppercase tracking-wider text-neon mb-1.5">Round ${round}${ms[0].when ? ` · ${e(formatDate(ms[0].when, { weekday: 'short', day: 'numeric', month: 'short' }))}` : ''}</p>
-              <div class="grid gap-1">
-                ${ms.map((m) => `
-                  <div class="flex items-center gap-2 text-sm rounded-md bg-white/[.03] px-2.5 py-1.5">
-                    <span class="text-muted w-[64px] shrink-0">${m.when ? e(formatTime(m.when)) : '—'}</span>
-                    <span class="text-white truncate flex-1 text-right">${e(m.home.player_name)}</span>
-                    <span class="text-neon font-bold text-xs">VS</span>
-                    <span class="text-white truncate flex-1">${e(m.away.player_name)}</span>
-                  </div>`).join('')}
-              </div>
-            </div>`).join('') : '<p class="text-sm text-muted">Every pairing already has a fixture. Nothing new to create.</p>'}
+            <div class="fx-round">
+              <p class="fx-round__title">Round ${round}${ms[0].date ? ` <span>${e(formatDate(combineDateTime(ms[0].date, ms[0].time || '00:00') || new Date(), { weekday: 'short', day: 'numeric', month: 'short' }))}</span>` : ''}</p>
+              ${ms.map((m) => `
+                <div class="fx-row${m.removed ? ' is-removed' : ''}${m.edited ? ' is-edited' : ''}" data-key="${e(m.key)}">
+                  <div class="fx-row__when">
+                    <input type="date" class="input fx-input" value="${e(m.date)}" data-edit="date" aria-label="Date" ${m.removed ? 'disabled' : ''}>
+                    <input type="time" class="input fx-input" value="${e(m.time)}" data-edit="time" aria-label="Kickoff time" ${m.removed ? 'disabled' : ''}>
+                  </div>
+                  <div class="fx-row__teams">
+                    <span class="fx-row__p">${ui.avatar(m.home, 'sm')}<span>${e(m.home.player_name)}</span></span>
+                    <span class="fx-row__vs">VS</span>
+                    <span class="fx-row__p fx-row__p--away"><span>${e(m.away.player_name)}</span>${ui.avatar(m.away, 'sm')}</span>
+                  </div>
+                  <div class="fx-row__actions">
+                    <button type="button" class="icon-btn icon-btn--sm" data-swap title="Swap home and away" aria-label="Swap home and away" ${m.removed ? 'disabled' : ''}>${ui.icon('arrow-left-right', '')}</button>
+                    <button type="button" class="icon-btn icon-btn--sm ${m.removed ? '' : 'icon-btn--danger'}" data-remove title="${m.removed ? 'Add back' : 'Leave out'}" aria-label="${m.removed ? 'Add this match back' : 'Leave this match out'}">${ui.icon(m.removed ? 'undo-2' : 'x', '')}</button>
+                  </div>
+                </div>`).join('')}
+            </div>`).join('') : '<p class="text-sm text-muted p-3">Every pairing already has a fixture. Nothing new to create.</p>'}
         </div>`;
-      submit.disabled = !plan.length;
+      submit.disabled = !active.length;
+      submit.innerHTML = `${ui.icon('check', '')}Create ${active.length} fixture${active.length === 1 ? '' : 's'}`;
+      submit.dataset.originalHtml = submit.innerHTML;
       form.querySelector('[data-reshuffle]').hidden = v.order !== 'shuffle';
+      resetBtn.hidden = !overrides.size;
+      ui.icons();
     }
 
-    form.addEventListener('input', build);
-    form.addEventListener('change', build);
-    form.querySelector('[data-reshuffle]').addEventListener('click', () => { drawOrder = shuffle(approved); build(); });
+    const edit = (key, patch) => {
+      const next = { ...(overrides.get(key) || {}), ...patch };
+      if (!next.swap && !next.removed && !next.date && !next.time) overrides.delete(key);
+      else overrides.set(key, next);
+      build();
+    };
+
+    // Settings change → regenerate. Per-match inputs are handled separately below.
+    form.addEventListener('change', (ev) => {
+      const row = ev.target.closest('[data-key]');
+      if (row && ev.target.dataset.edit) { edit(row.dataset.key, { [ev.target.dataset.edit]: ev.target.value }); return; }
+      if (!row) build();
+    });
+    form.addEventListener('input', (ev) => {
+      if (!ev.target.closest('[data-key]') && ev.target.type === 'number') build();
+    });
+    form.addEventListener('click', (ev) => {
+      const row = ev.target.closest('[data-key]');
+      if (row && ev.target.closest('[data-swap]')) {
+        const o = overrides.get(row.dataset.key) || {};
+        edit(row.dataset.key, { swap: !o.swap });
+      } else if (row && ev.target.closest('[data-remove]')) {
+        const o = overrides.get(row.dataset.key) || {};
+        edit(row.dataset.key, { removed: !o.removed });
+      }
+    });
+    form.querySelector('[data-reshuffle]').addEventListener('click', async () => {
+      if (overrides.size && !(await ui.confirm({ title: 'Re-draw fixtures?', message: 'A new random draw replaces your match changes.', confirmText: 'Re-draw', tone: 'primary' }))) return;
+      overrides = new Map();
+      drawOrder = shuffle(approved);
+      build();
+    });
+    resetBtn.addEventListener('click', () => { overrides = new Map(); build(); });
+    form.querySelector('[data-back]').addEventListener('click', () => { modal.close(); admin.openFixtureChooser(); });
     build();
 
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
-      const v = ui.readForm(form);
-      if (!combineDateTime(v.start_date, v.kickoff)) {
-        ui.showErrors(form, { start_date: 'Enter a valid date and time.' });
+      const active = plan.filter((m) => !m.removed);
+      if (!active.length) return;
+      const bad = active.find((m) => !combineDateTime(m.date, m.time));
+      if (bad) {
+        ui.formAlert(form, `Set a valid date and time for ${bad.home.player_name} vs ${bad.away.player_name}.`);
+        form.querySelector(`[data-key="${CSS.escape(bad.key)}"] [data-edit="date"]`)?.focus();
         return;
       }
-      if (!plan.length) return;
+      ui.formAlert(form, null);
       const ok = await ui.confirm({
-        title: `Create ${plan.length} fixtures?`,
+        title: `Create ${active.length} fixtures?`,
         message: 'They will be published on the public fixtures page straight away. You can still edit or delete any match afterwards.',
         confirmText: 'Create fixtures',
         tone: 'primary',
       });
       if (!ok) return;
 
-      const venue = nullable(v.venue);
+      const venue = nullable(ui.readForm(form).venue);
       let done = 0;
       const created = await admin.mutate(async () => {
-        for (const m of plan) {
+        for (const m of active) {
           await api.admin.createMatch(t.id, {
             home_player_id: m.home.id,
             away_player_id: m.away.id,
-            scheduled_at: m.when.toISOString(),
+            scheduled_at: combineDateTime(m.date, m.time),
             round: m.round,
             status: 'upcoming',
             home_score: null,
@@ -343,11 +458,11 @@
             notes: null,
           });
           done += 1;
-          if (submit.isConnected) ui.setLoading(submit, true, `Creating ${done}/${plan.length}`);
+          if (submit.isConnected) ui.setLoading(submit, true, `Creating ${done}/${active.length}`);
         }
-      }, { success: `${plan.length} fixtures created.`, button: submit, label: `Creating 0/${plan.length}` });
+      }, { success: `${active.length} fixtures created.`, button: submit, label: `Creating 0/${active.length}` });
       if (created) modal.close();
-      else if (done) ui.toast(`${done} of ${plan.length} fixtures were created before the error. Re-open the generator to add the rest; existing pairings are skipped.`, 'warning');
+      else if (done) ui.toast(`${done} of ${active.length} fixtures were created before the error. Open Automatic again to add the rest; existing pairings are skipped.`, 'warning');
     });
   };
 
@@ -378,10 +493,7 @@
                   ${id === 'all' ? 'All' : ui.MATCH_STATUS[id].label}<span class="chip__count">${count(id)}</span>
                 </button>`).join('')}
             </div>
-            <div class="flex flex-wrap gap-2 lg:ml-auto">
-              <button type="button" class="btn btn-secondary btn-sm" data-generate ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('wand-sparkles', '')}Auto-generate</button>
-              <button type="button" class="btn btn-primary btn-sm" data-add ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('calendar-plus', '')}Create fixture</button>
-            </div>
+            <button type="button" class="btn btn-primary btn-sm lg:ml-auto" data-choose ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('calendar-plus', '')}Create fixtures</button>
           </div>
           <div data-list></div>
         </section>`;
@@ -393,7 +505,7 @@
           && (!q || [m.home, m.away].some((p) => p && `${p.player_name} ${p.team_name}`.toLowerCase().includes(q))));
 
         if (!s.matches.length) {
-          list.innerHTML = ui.state.empty({ icon: 'calendar-plus', title: 'No fixtures yet', message: 'Create your first match by selecting two approved players.', action: approvedCount >= 2 ? '<div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn btn-primary btn-sm" data-generate>Auto-generate all fixtures</button><button type="button" class="btn btn-ghost btn-sm" data-add>Create one fixture</button></div>' : '' });
+          list.innerHTML = ui.state.empty({ icon: 'calendar-plus', title: 'No fixtures yet', message: 'Create your first match by selecting two approved players.', action: approvedCount >= 2 ? `<div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn btn-primary btn-sm" data-generate>${ui.icon('wand-sparkles', '')}Generate automatically</button><button type="button" class="btn btn-ghost btn-sm" data-add>Add one manually</button></div>` : '' });
         } else if (!rows.length) {
           list.innerHTML = ui.state.empty({ icon: 'search-x', title: 'No matching fixtures', message: 'Adjust the search or status filter.' });
         } else {
@@ -439,6 +551,7 @@
           draw();
           return;
         }
+        if (ev.target.closest('[data-choose]')) { admin.openFixtureChooser(); return; }
         if (ev.target.closest('[data-add]')) { admin.openFixtureForm(); return; }
         if (ev.target.closest('[data-generate]')) { admin.openFixtureGenerator(); return; }
         const find = (id) => s.matches.find((m) => m.id === id);
@@ -450,7 +563,7 @@
 
       if (admin.pendingAction === 'add-fixture') {
         admin.pendingAction = null;
-        admin.openFixtureForm();
+        admin.openFixtureChooser();
       }
     },
   });
