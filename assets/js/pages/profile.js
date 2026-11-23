@@ -24,10 +24,7 @@ EF.boot(async function profilePage() {
             autocomplete: 'email',
           })}
           <div data-form-alert hidden></div>
-          <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
-            <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('search')}View profile</button>
-            <button type="button" class="text-sm text-soft hover:text-neon" data-profile-send-link>Want to edit? Email me a sign-in link</button>
-          </div>
+          <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('search')}View profile</button>
         </form>
       </div>`;
     const form = root.querySelector('[data-profile-email-form]');
@@ -49,47 +46,6 @@ EF.boot(async function profilePage() {
       state.email = email;
       loadDashboard();
     });
-    form.querySelector('[data-profile-send-link]').addEventListener('click', async (event) => {
-      const email = readEmail();
-      if (!email) return;
-      const button = event.currentTarget;
-      ui.setLoading(button, true, 'Sending sign-in link');
-      try {
-        await EF.api.sendPlayerLoginLink(email);
-        state.email = email;
-        renderLinkSent();
-        ui.toast('A secure sign-in link was sent to your email.', 'success');
-      } catch (err) {
-        ui.setLoading(button, false);
-        ui.formAlert(form, EF.api.friendlyError(err));
-      }
-    });
-    ui.icons();
-  }
-
-  function renderLinkSent() {
-    root.innerHTML = `
-      <div class="max-w-xl">
-        <h2 class="font-display text-2xl font-bold uppercase text-white">Check your inbox</h2>
-        <p class="text-sm text-muted mt-2">We sent a secure sign-in link to <strong class="text-white">${e(state.email)}</strong>. Open the email and click the link to return here. Check your spam folder if it doesn’t arrive.</p>
-        <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm mt-5">
-          <button type="button" class="text-soft hover:text-neon" data-profile-resend>Email me another link</button>
-          <button type="button" class="text-soft hover:text-neon" data-profile-change-email>Use a different email</button>
-        </div>
-      </div>`;
-    root.querySelector('[data-profile-resend]').addEventListener('click', async (event) => {
-      const button = event.currentTarget;
-      ui.setLoading(button, true, 'Sending link');
-      try {
-        await EF.api.sendPlayerLoginLink(state.email);
-        ui.toast('A new sign-in link was sent.', 'success');
-      } catch (err) {
-        ui.toast(EF.api.friendlyError(err), 'error');
-      } finally {
-        ui.setLoading(button, false);
-      }
-    });
-    root.querySelector('[data-profile-change-email]').addEventListener('click', () => renderEmailForm(state.email));
     ui.icons();
   }
 
@@ -189,10 +145,10 @@ EF.boot(async function profilePage() {
             <button type="button" class="btn btn-outline" data-profile-signout>${ui.icon(signedIn ? 'log-out' : 'arrow-left')}${signedIn ? 'Sign out' : 'Change email'}</button>
           </section>
 
-          ${signedIn ? `<form class="border-t border-white/10 pt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" data-profile-update-form novalidate>
+          <form class="border-t border-white/10 pt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" data-profile-update-form novalidate>
             <div>
               <h3 class="font-display text-xl font-bold uppercase text-white">Player details</h3>
-              <p class="text-xs text-muted mt-1">Name, eFootball username and DP update across all registrations linked to this verified email.</p>
+              <p class="text-xs text-muted mt-1">Name, eFootball username and DP update across all registrations linked to this email.</p>
               <div class="grid gap-4 md:grid-cols-2 mt-4">
                 ${ui.field({
                   name: 'player_name',
@@ -224,10 +180,7 @@ EF.boot(async function profilePage() {
               <div data-form-alert hidden></div>
             </div>
             <button type="submit" class="btn btn-primary">${ui.icon('save')}Save profile</button>
-          </form>` : `<div class="border-t border-white/10 pt-6 flex flex-wrap items-center justify-between gap-3">
-            <p class="text-sm text-muted">To change your name, username or photo, sign in with a link sent to your email.</p>
-            <button type="button" class="btn btn-outline" data-profile-edit-link>${ui.icon('send')}Email me a sign-in link</button>
-          </div>`}
+          </form>
 
           <section class="border-t border-white/10 pt-6">
             <div class="flex flex-wrap items-end justify-between gap-3">
@@ -242,22 +195,6 @@ EF.boot(async function profilePage() {
         </div>`;
 
       root.querySelector('[data-profile-signout]').addEventListener('click', signOut);
-      if (!signedIn) {
-        root.querySelector('[data-profile-edit-link]').addEventListener('click', async (event) => {
-          const button = event.currentTarget;
-          ui.setLoading(button, true, 'Sending sign-in link');
-          try {
-            await EF.api.sendPlayerLoginLink(state.email);
-            renderLinkSent();
-            ui.toast('A secure sign-in link was sent to your email.', 'success');
-          } catch (err) {
-            ui.setLoading(button, false);
-            ui.toast(EF.api.friendlyError(err), 'error');
-          }
-        });
-        ui.icons();
-        return;
-      }
       const form = root.querySelector('[data-profile-update-form]');
       ui.liveClear(form);
       ui.bindPhotoFields(form);
@@ -281,7 +218,9 @@ EF.boot(async function profilePage() {
         const button = form.querySelector('[type="submit"]');
         ui.setLoading(button, true, 'Saving profile');
         try {
-          const updatedCount = await EF.api.updateMyPlayerProfile(values);
+          const updatedCount = signedIn
+            ? await EF.api.updateMyPlayerProfile(values)
+            : await EF.api.updatePlayerProfileByEmail(state.email, values);
           ui.toast(`Profile updated for ${plural(Number(updatedCount), 'registration')}.`, 'success');
           await loadDashboard();
         } catch (err) {

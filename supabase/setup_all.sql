@@ -576,6 +576,61 @@ end;
 $$;
 revoke execute on function public.lookup_player_profile(text) from public;
 
+-- Edit name, eFootball username and DP using only the registration email
+-- (no sign-in). Updates every non-rejected registration with that email.
+create or replace function public.update_player_profile_by_email(
+  p_email text,
+  p_player_name text,
+  p_efootball_username text,
+  p_avatar_url text
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text := lower(btrim(coalesce(p_email, '')));
+  v_player_name text := btrim(regexp_replace(coalesce(p_player_name, ''), '\s+', ' ', 'g'));
+  v_username text := btrim(coalesce(p_efootball_username, ''));
+  v_updated integer;
+begin
+  if char_length(v_email) > 254 or v_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]{2,}$' then
+    raise exception 'INVALID_EMAIL' using errcode = '22023';
+  end if;
+  if char_length(v_player_name) not between 2 and 60 then
+    raise exception 'INVALID_PLAYER_NAME' using errcode = '22023';
+  end if;
+  if char_length(v_username) not between 3 and 40 then
+    raise exception 'INVALID_USERNAME' using errcode = '22023';
+  end if;
+  if p_avatar_url is not null and (
+       char_length(p_avatar_url) > 300000
+       or p_avatar_url !~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$'
+     ) then
+    raise exception 'INVALID_AVATAR' using errcode = '22023';
+  end if;
+
+  begin
+    update public.players
+       set player_name = v_player_name,
+           efootball_username = v_username,
+           avatar_url = p_avatar_url
+     where lower(email) = v_email
+       and status <> 'rejected';
+  exception when unique_violation then
+    raise exception 'DUPLICATE_USERNAME' using errcode = '23505';
+  end;
+
+  get diagnostics v_updated = row_count;
+  if v_updated = 0 then
+    raise exception 'PLAYER_PROFILE_NOT_FOUND' using errcode = 'P0002';
+  end if;
+  return v_updated;
+end;
+$$;
+revoke execute on function public.update_player_profile_by_email(text, text, text, text) from public;
+
 -- Import a local-browser backup only into an empty database. The admin check
 -- and table constraints still apply; the function never deletes remote data.
 create or replace function public.import_backup(p_backup jsonb)
@@ -725,6 +780,7 @@ grant  execute on function public.get_my_player_profile() to authenticated;
 revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
 grant  execute on function public.update_my_player_profile(text, text, text) to authenticated;
 grant  execute on function public.lookup_player_profile(text) to anon, authenticated;
+grant  execute on function public.update_player_profile_by_email(text, text, text, text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 --  tournaments
@@ -884,7 +940,7 @@ notify pgrst, 'reload schema';
 
 
 -- ---------------------------------------------------------------------
---  Confirmation: you should see 6 tables, 2 views and 6 functions below.
+--  Confirmation: you should see 6 tables, 2 views and 7 functions below.
 -- ---------------------------------------------------------------------
 select 'table' as kind, table_name as name
   from information_schema.tables
@@ -899,6 +955,7 @@ select 'function', routine_name
   from information_schema.routines
  where routine_schema = 'public' and routine_name in (
    'register_player', 'is_admin', 'import_backup',
-   'get_my_player_profile', 'update_my_player_profile', 'lookup_player_profile'
+   'get_my_player_profile', 'update_my_player_profile', 'lookup_player_profile',
+   'update_player_profile_by_email'
  )
 order by 1, 2;

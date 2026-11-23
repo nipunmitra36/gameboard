@@ -127,6 +127,17 @@
       }))) || [];
     },
 
+    async updatePlayerProfileByEmail(email, values) {
+      const avatar = String(values.avatar_url || '');
+      if (avatar && !EF.utils.isAvatarData(avatar)) throw new AppError('INVALID_AVATAR');
+      return run(db().rpc('update_player_profile_by_email', {
+        p_email: String(email || '').trim().toLowerCase(),
+        p_player_name: EF.utils.clean(values.player_name),
+        p_efootball_username: String(values.efootball_username || '').trim(),
+        p_avatar_url: avatar || null,
+      }));
+    },
+
     async updateMyPlayerProfile(values) {
       const avatar = String(values.avatar_url || '');
       if (avatar && !EF.utils.isAvatarData(avatar)) throw new AppError('INVALID_AVATAR');
