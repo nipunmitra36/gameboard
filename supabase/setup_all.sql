@@ -537,6 +537,45 @@ $$;
 revoke execute on function public.get_my_player_profile() from public, anon;
 revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
 
+-- Read-only profile lookup by email (no sign-in needed). Returns only the
+-- public columns already shown on the Players page, never the email, and
+-- only for published tournaments. Editing still requires a verified email.
+create or replace function public.lookup_player_profile(p_email text)
+returns table (
+  id uuid,
+  tournament_id uuid,
+  player_name text,
+  team_name text,
+  efootball_username text,
+  status text,
+  avatar_url text,
+  created_at timestamptz
+)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text := lower(btrim(coalesce(p_email, '')));
+begin
+  if char_length(v_email) > 254 or v_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]{2,}$' then
+    raise exception 'INVALID_EMAIL' using errcode = '22023';
+  end if;
+
+  return query
+  select p.id, p.tournament_id, p.player_name, p.team_name,
+         p.efootball_username, p.status, p.avatar_url, p.created_at
+    from public.players as p
+    join public.tournaments as t on t.id = p.tournament_id
+   where lower(p.email) = v_email
+     and p.status <> 'rejected'
+     and t.is_published
+   order by p.created_at desc;
+end;
+$$;
+revoke execute on function public.lookup_player_profile(text) from public;
+
 -- Import a local-browser backup only into an empty database. The admin check
 -- and table constraints still apply; the function never deletes remote data.
 create or replace function public.import_backup(p_backup jsonb)
@@ -685,6 +724,7 @@ revoke execute on function public.get_my_player_profile() from public, anon;
 grant  execute on function public.get_my_player_profile() to authenticated;
 revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
 grant  execute on function public.update_my_player_profile(text, text, text) to authenticated;
+grant  execute on function public.lookup_player_profile(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 --  tournaments
@@ -844,7 +884,7 @@ notify pgrst, 'reload schema';
 
 
 -- ---------------------------------------------------------------------
---  Confirmation: you should see 6 tables, 2 views and 5 functions below.
+--  Confirmation: you should see 6 tables, 2 views and 6 functions below.
 -- ---------------------------------------------------------------------
 select 'table' as kind, table_name as name
   from information_schema.tables
@@ -859,6 +899,6 @@ select 'function', routine_name
   from information_schema.routines
  where routine_schema = 'public' and routine_name in (
    'register_player', 'is_admin', 'import_backup',
-   'get_my_player_profile', 'update_my_player_profile'
+   'get_my_player_profile', 'update_my_player_profile', 'lookup_player_profile'
  )
 order by 1, 2;

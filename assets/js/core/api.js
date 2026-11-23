@@ -121,6 +121,12 @@
       return (await run(db().rpc('get_my_player_profile'))) || [];
     },
 
+    async lookupPlayerProfile(email) {
+      return (await run(db().rpc('lookup_player_profile', {
+        p_email: String(email || '').trim().toLowerCase(),
+      }))) || [];
+    },
+
     async updateMyPlayerProfile(values) {
       const avatar = String(values.avatar_url || '');
       if (avatar && !EF.utils.isAvatarData(avatar)) throw new AppError('INVALID_AVATAR');

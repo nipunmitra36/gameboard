@@ -9,8 +9,8 @@ EF.boot(async function profilePage() {
   function renderEmailForm(email = '', message = '') {
     root.innerHTML = `
       <div class="max-w-xl">
-        <h2 class="font-display text-2xl font-bold uppercase text-white">Sign in with email</h2>
-        <p class="text-sm text-muted mt-2">We’ll email you a secure sign-in link. You must be able to open that inbox to access your profile.</p>
+        <h2 class="font-display text-2xl font-bold uppercase text-white">View your profile</h2>
+        <p class="text-sm text-muted mt-2">Enter the email you registered with to see your profile and statistics.</p>
         <form class="mt-6 grid gap-4" data-profile-email-form novalidate>
           ${ui.field({
             name: 'email',
@@ -24,22 +24,35 @@ EF.boot(async function profilePage() {
             autocomplete: 'email',
           })}
           <div data-form-alert hidden></div>
-          <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('send')}Email me a sign-in link</button>
+          <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('search')}View profile</button>
+            <button type="button" class="text-sm text-soft hover:text-neon" data-profile-send-link>Want to edit? Email me a sign-in link</button>
+          </div>
         </form>
       </div>`;
     const form = root.querySelector('[data-profile-email-form]');
     ui.liveClear(form);
     form.addEventListener('input', () => ui.formAlert(form, ''));
     if (message) ui.formAlert(form, message);
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const emailInput = form.elements.email;
-      const email = String(emailInput.value || '').trim().toLowerCase();
+    function readEmail() {
+      const email = String(form.elements.email.value || '').trim().toLowerCase();
       if (!EF.utils.isEmail(email)) {
         ui.showErrors(form, { email: 'Enter a valid email address.' });
-        return;
+        return '';
       }
-      const button = form.querySelector('[type="submit"]');
+      return email;
+    }
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = readEmail();
+      if (!email) return;
+      state.email = email;
+      loadDashboard();
+    });
+    form.querySelector('[data-profile-send-link]').addEventListener('click', async (event) => {
+      const email = readEmail();
+      if (!email) return;
+      const button = event.currentTarget;
       ui.setLoading(button, true, 'Sending sign-in link');
       try {
         await EF.api.sendPlayerLoginLink(email);
@@ -115,10 +128,11 @@ EF.boot(async function profilePage() {
   }
 
   async function loadDashboard() {
+    const signedIn = Boolean(state.session);
     root.innerHTML = ui.state.loading('Loading your player profile');
     try {
       const [records, tournaments] = await Promise.all([
-        EF.api.getMyPlayerProfile(),
+        signedIn ? EF.api.getMyPlayerProfile() : EF.api.lookupPlayerProfile(state.email),
         EF.api.getProfileTournaments(),
       ]);
       if (!records.length) {
@@ -127,8 +141,8 @@ EF.boot(async function profilePage() {
           <div class="max-w-xl">
             <div class="state__icon">${ui.icon('user-round-x')}</div>
             <h2 class="font-display text-2xl font-bold uppercase text-white mt-4">No player registration found</h2>
-            <p class="text-sm text-muted mt-2">The verified email <strong class="text-white">${e(email || '')}</strong> does not match a player registration. Sign out and use the registration email address.</p>
-            <button type="button" class="btn btn-outline mt-5" data-profile-signout>${ui.icon('log-out')}Sign out</button>
+            <p class="text-sm text-muted mt-2">The email <strong class="text-white">${e(email || '')}</strong> does not match a player registration. Use the email address you registered with.</p>
+            <button type="button" class="btn btn-outline mt-5" data-profile-signout>${ui.icon(signedIn ? 'log-out' : 'arrow-left')}${signedIn ? 'Sign out' : 'Try another email'}</button>
           </div>`;
         root.querySelector('[data-profile-signout]').addEventListener('click', signOut);
         ui.icons();
@@ -168,14 +182,14 @@ EF.boot(async function profilePage() {
           <section class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
             ${ui.avatar(activeRecord, 'xl')}
             <div class="min-w-0 flex-1">
-              <p class="eyebrow eyebrow--volt">Verified player</p>
+              <p class="eyebrow eyebrow--volt">${signedIn ? 'Verified player' : 'Player profile'}</p>
               <h2 class="font-display text-2xl sm:text-3xl font-bold text-white mt-1">${e(activeRecord.player_name)}</h2>
-              <p class="text-sm text-muted mt-1">${e(activeRecord.team_name)} <span class="text-subtle">·</span> ${e(state.session.user.email)}</p>
+              <p class="text-sm text-muted mt-1">${e(activeRecord.team_name)} <span class="text-subtle">·</span> ${e(signedIn ? state.session.user.email : state.email)}</p>
             </div>
-            <button type="button" class="btn btn-outline" data-profile-signout>${ui.icon('log-out')}Sign out</button>
+            <button type="button" class="btn btn-outline" data-profile-signout>${ui.icon(signedIn ? 'log-out' : 'arrow-left')}${signedIn ? 'Sign out' : 'Change email'}</button>
           </section>
 
-          <form class="border-t border-white/10 pt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" data-profile-update-form novalidate>
+          ${signedIn ? `<form class="border-t border-white/10 pt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" data-profile-update-form novalidate>
             <div>
               <h3 class="font-display text-xl font-bold uppercase text-white">Player details</h3>
               <p class="text-xs text-muted mt-1">Name, eFootball username and DP update across all registrations linked to this verified email.</p>
@@ -210,7 +224,10 @@ EF.boot(async function profilePage() {
               <div data-form-alert hidden></div>
             </div>
             <button type="submit" class="btn btn-primary">${ui.icon('save')}Save profile</button>
-          </form>
+          </form>` : `<div class="border-t border-white/10 pt-6 flex flex-wrap items-center justify-between gap-3">
+            <p class="text-sm text-muted">To change your name, username or photo, sign in with a link sent to your email.</p>
+            <button type="button" class="btn btn-outline" data-profile-edit-link>${ui.icon('send')}Email me a sign-in link</button>
+          </div>`}
 
           <section class="border-t border-white/10 pt-6">
             <div class="flex flex-wrap items-end justify-between gap-3">
@@ -225,6 +242,22 @@ EF.boot(async function profilePage() {
         </div>`;
 
       root.querySelector('[data-profile-signout]').addEventListener('click', signOut);
+      if (!signedIn) {
+        root.querySelector('[data-profile-edit-link]').addEventListener('click', async (event) => {
+          const button = event.currentTarget;
+          ui.setLoading(button, true, 'Sending sign-in link');
+          try {
+            await EF.api.sendPlayerLoginLink(state.email);
+            renderLinkSent();
+            ui.toast('A secure sign-in link was sent to your email.', 'success');
+          } catch (err) {
+            ui.setLoading(button, false);
+            ui.toast(EF.api.friendlyError(err), 'error');
+          }
+        });
+        ui.icons();
+        return;
+      }
       const form = root.querySelector('[data-profile-update-form]');
       ui.liveClear(form);
       ui.bindPhotoFields(form);
@@ -266,7 +299,7 @@ EF.boot(async function profilePage() {
 
   async function signOut() {
     try {
-      await EF.api.signOut();
+      if (state.session) await EF.api.signOut();
       state.session = null;
       state.email = '';
       renderEmailForm();
@@ -281,7 +314,7 @@ EF.boot(async function profilePage() {
     root.innerHTML = ui.state.empty({
       icon: 'shield-alert',
       title: 'Supabase required',
-      message: 'Player profiles use verified Supabase email sign-in. Select the Supabase backend in assets/js/config.js to continue.',
+      message: 'Player profiles use Supabase. Select the Supabase backend in assets/js/config.js to continue.',
     });
     ui.icons();
     return;

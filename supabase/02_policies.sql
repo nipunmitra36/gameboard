@@ -46,6 +46,7 @@ revoke execute on function public.get_my_player_profile() from public, anon;
 grant  execute on function public.get_my_player_profile() to authenticated;
 revoke execute on function public.update_my_player_profile(text, text, text) from public, anon;
 grant  execute on function public.update_my_player_profile(text, text, text) to authenticated;
+grant  execute on function public.lookup_player_profile(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 --  tournaments
