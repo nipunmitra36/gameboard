@@ -154,6 +154,203 @@
     });
   };
 
+  /* ---------------- Auto-generate (round robin) ---------------- */
+
+  /**
+   * Circle-method round robin. Returns rounds of [home, away] pairs.
+   * Odd player counts get a bye (that player sits out the round).
+   * legs = 2 adds the return fixtures with home and away swapped.
+   */
+  function roundRobin(players, legs) {
+    const list = players.slice();
+    if (list.length % 2) list.push(null);
+    const n = list.length;
+    const firstLeg = [];
+    for (let r = 0; r < n - 1; r += 1) {
+      const pairs = [];
+      for (let i = 0; i < n / 2; i += 1) {
+        let home = list[i];
+        let away = list[n - 1 - i];
+        // Alternate home/away so nobody plays every match at home.
+        if ((i === 0 && r % 2 === 1) || (i > 0 && i % 2 === 1)) [home, away] = [away, home];
+        if (home && away) pairs.push([home, away]);
+      }
+      firstLeg.push(pairs);
+      // Keep the first player fixed and rotate everyone else one place.
+      list.splice(1, 0, list.pop());
+    }
+    if (legs === 1) return firstLeg;
+    return [...firstLeg, ...firstLeg.map((pairs) => pairs.map(([h, a]) => [a, h]))];
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  admin.openFixtureGenerator = function () {
+    const approved = admin.approvedPlayers();
+    if (approved.length < 2) {
+      ui.toast('You need at least two approved players to generate fixtures.', 'warning');
+      return;
+    }
+    const t = admin.state.tournament;
+    const defaultLegs = /single|^round robin$/i.test(String(t.format || '')) ? '1' : '2';
+    const existing = admin.state.matches;
+    const lastRound = Math.max(0, ...existing.map((m) => m.round || 0));
+    const tomorrow = new Date(Date.now() + 86400000);
+
+    const modal = ui.modal({
+      title: 'Auto-generate fixtures',
+      size: 'lg',
+      body: `
+        <form novalidate class="grid gap-5" data-gen-form>
+          <div data-form-alert hidden></div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            ${ui.field({ name: 'legs', label: 'Format', as: 'select', value: defaultLegs, options: [
+              { value: '2', label: 'Double round robin (home & away)' },
+              { value: '1', label: 'Single round robin (play once)' },
+            ] })}
+            ${ui.field({ name: 'order', label: 'Player order', as: 'select', value: 'shuffle', options: [
+              { value: 'shuffle', label: 'Random draw' },
+              { value: 'name', label: 'Alphabetical' },
+            ] })}
+          </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${ui.field({ name: 'start_date', label: 'First match day', type: 'date', value: toDateInput(tomorrow), required: true })}
+            ${ui.field({ name: 'kickoff', label: 'First kickoff', type: 'time', value: '20:00', required: true, hint: 'Your local time' })}
+            ${ui.field({ name: 'gap_minutes', label: 'Minutes between matches', type: 'number', min: 0, max: 720, value: 30, hint: 'Same day, one after another' })}
+            ${ui.field({ name: 'gap_days', label: 'Days between rounds', type: 'number', min: 0, max: 60, value: 1, hint: '0 = all rounds on one day' })}
+          </div>
+          ${ui.field({ name: 'venue', label: 'Venue / Lobby (optional)', maxlength: 80, placeholder: 'e.g. Online' })}
+          <div class="rounded-xl border border-white/10 bg-white/[.03] p-4" data-gen-summary></div>
+          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+            <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+            <button type="button" class="btn btn-secondary" data-reshuffle>${ui.icon('shuffle', '')}Re-draw</button>
+            <button type="submit" class="btn btn-primary" data-submit>${ui.icon('wand-sparkles', '')}Create fixtures</button>
+          </div>
+        </form>`,
+    });
+
+    const form = modal.body.querySelector('[data-gen-form]');
+    const summary = form.querySelector('[data-gen-summary]');
+    const submit = form.querySelector('[data-submit]');
+    let drawOrder = shuffle(approved);
+    let plan = [];
+
+    // Pairings that already have a fixture are skipped, so re-running never duplicates.
+    const taken = new Set(existing.map((m) => `${m.home_player_id}>${m.away_player_id}`));
+    const pairTaken = (h, a, legs) => taken.has(`${h.id}>${a.id}`) || (legs === 1 && taken.has(`${a.id}>${h.id}`));
+
+    function build() {
+      const v = ui.readForm(form);
+      const legs = Number(v.legs) === 1 ? 1 : 2;
+      const players = v.order === 'name' ? approved : drawOrder;
+      const gapMin = Math.max(0, toInt(v.gap_minutes) ?? 30);
+      const gapDays = Math.max(0, toInt(v.gap_days) ?? 1);
+      const first = combineDateTime(v.start_date, v.kickoff);
+      const rounds = roundRobin(players, legs);
+
+      plan = [];
+      let skipped = 0;
+      let slot = 0;
+      rounds.forEach((pairs, r) => {
+        if (gapDays > 0) slot = 0;
+        pairs.forEach(([home, away]) => {
+          if (pairTaken(home, away, legs)) { skipped += 1; return; }
+          let when = null;
+          if (first) {
+            const d = new Date(first);
+            d.setDate(d.getDate() + r * gapDays);
+            d.setMinutes(d.getMinutes() + slot * gapMin);
+            when = d;
+          }
+          slot += 1;
+          plan.push({ round: lastRound + r + 1, home, away, when });
+        });
+      });
+
+      const n = approved.length;
+      const perPlayer = (n - 1) * legs;
+      const total = (n * (n - 1) / 2) * legs;
+      const byRound = new Map();
+      plan.forEach((m) => { if (!byRound.has(m.round)) byRound.set(m.round, []); byRound.get(m.round).push(m); });
+
+      summary.innerHTML = `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          ${[['Players', n], ['Rounds', rounds.length], ['Matches each', perPlayer], ['Total matches', total]].map(([l, val]) => `
+            <div class="rounded-lg bg-white/[.04] p-2.5"><p class="text-[11px] uppercase tracking-wider text-muted">${l}</p><p class="font-display text-2xl font-bold text-white">${val}</p></div>`).join('')}
+        </div>
+        ${n % 2 ? '<p class="text-xs text-muted mt-3">Odd number of players: one player rests each round.</p>' : ''}
+        ${skipped ? `<p class="text-xs text-warn mt-2">${skipped} pairing${skipped === 1 ? '' : 's'} already have a fixture and will be skipped.</p>` : ''}
+        <div class="mt-4 max-h-[300px] overflow-y-auto pr-1 grid gap-3">
+          ${plan.length ? [...byRound.entries()].map(([round, ms]) => `
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-neon mb-1.5">Round ${round}${ms[0].when ? ` · ${e(formatDate(ms[0].when, { weekday: 'short', day: 'numeric', month: 'short' }))}` : ''}</p>
+              <div class="grid gap-1">
+                ${ms.map((m) => `
+                  <div class="flex items-center gap-2 text-sm rounded-md bg-white/[.03] px-2.5 py-1.5">
+                    <span class="text-muted w-[64px] shrink-0">${m.when ? e(formatTime(m.when)) : '—'}</span>
+                    <span class="text-white truncate flex-1 text-right">${e(m.home.player_name)}</span>
+                    <span class="text-neon font-bold text-xs">VS</span>
+                    <span class="text-white truncate flex-1">${e(m.away.player_name)}</span>
+                  </div>`).join('')}
+              </div>
+            </div>`).join('') : '<p class="text-sm text-muted">Every pairing already has a fixture. Nothing new to create.</p>'}
+        </div>`;
+      submit.disabled = !plan.length;
+      form.querySelector('[data-reshuffle]').hidden = v.order !== 'shuffle';
+    }
+
+    form.addEventListener('input', build);
+    form.addEventListener('change', build);
+    form.querySelector('[data-reshuffle]').addEventListener('click', () => { drawOrder = shuffle(approved); build(); });
+    build();
+
+    form.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const v = ui.readForm(form);
+      if (!combineDateTime(v.start_date, v.kickoff)) {
+        ui.showErrors(form, { start_date: 'Enter a valid date and time.' });
+        return;
+      }
+      if (!plan.length) return;
+      const ok = await ui.confirm({
+        title: `Create ${plan.length} fixtures?`,
+        message: 'They will be published on the public fixtures page straight away. You can still edit or delete any match afterwards.',
+        confirmText: 'Create fixtures',
+        tone: 'primary',
+      });
+      if (!ok) return;
+
+      const venue = nullable(v.venue);
+      let done = 0;
+      const created = await admin.mutate(async () => {
+        for (const m of plan) {
+          await api.admin.createMatch(t.id, {
+            home_player_id: m.home.id,
+            away_player_id: m.away.id,
+            scheduled_at: m.when.toISOString(),
+            round: m.round,
+            status: 'upcoming',
+            home_score: null,
+            away_score: null,
+            venue,
+            notes: null,
+          });
+          done += 1;
+          if (submit.isConnected) ui.setLoading(submit, true, `Creating ${done}/${plan.length}`);
+        }
+      }, { success: `${plan.length} fixtures created.`, button: submit, label: `Creating 0/${plan.length}` });
+      if (created) modal.close();
+      else if (done) ui.toast(`${done} of ${plan.length} fixtures were created before the error. Re-open the generator to add the rest; existing pairings are skipped.`, 'warning');
+    });
+  };
+
   admin.deleteFixture = async function (match) {
     const ok = await ui.confirm({
       title: 'Delete fixture?',
@@ -181,7 +378,10 @@
                   ${id === 'all' ? 'All' : ui.MATCH_STATUS[id].label}<span class="chip__count">${count(id)}</span>
                 </button>`).join('')}
             </div>
-            <button type="button" class="btn btn-primary btn-sm lg:ml-auto" data-add ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('calendar-plus', '')}Create fixture</button>
+            <div class="flex flex-wrap gap-2 lg:ml-auto">
+              <button type="button" class="btn btn-secondary btn-sm" data-generate ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('wand-sparkles', '')}Auto-generate</button>
+              <button type="button" class="btn btn-primary btn-sm" data-add ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('calendar-plus', '')}Create fixture</button>
+            </div>
           </div>
           <div data-list></div>
         </section>`;
@@ -193,7 +393,7 @@
           && (!q || [m.home, m.away].some((p) => p && `${p.player_name} ${p.team_name}`.toLowerCase().includes(q))));
 
         if (!s.matches.length) {
-          list.innerHTML = ui.state.empty({ icon: 'calendar-plus', title: 'No fixtures yet', message: 'Create your first match by selecting two approved players.', action: approvedCount >= 2 ? '<button type="button" class="btn btn-primary btn-sm" data-add>Create fixture</button>' : '' });
+          list.innerHTML = ui.state.empty({ icon: 'calendar-plus', title: 'No fixtures yet', message: 'Create your first match by selecting two approved players.', action: approvedCount >= 2 ? '<div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn btn-primary btn-sm" data-generate>Auto-generate all fixtures</button><button type="button" class="btn btn-ghost btn-sm" data-add>Create one fixture</button></div>' : '' });
         } else if (!rows.length) {
           list.innerHTML = ui.state.empty({ icon: 'search-x', title: 'No matching fixtures', message: 'Adjust the search or status filter.' });
         } else {
@@ -240,6 +440,7 @@
           return;
         }
         if (ev.target.closest('[data-add]')) { admin.openFixtureForm(); return; }
+        if (ev.target.closest('[data-generate]')) { admin.openFixtureGenerator(); return; }
         const find = (id) => s.matches.find((m) => m.id === id);
         const edit = ev.target.closest('[data-edit]');
         if (edit) { admin.openFixtureForm(find(edit.dataset.edit)); return; }
