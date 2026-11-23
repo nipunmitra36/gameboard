@@ -12,7 +12,7 @@
     { id: 'standings', label: 'Point Table', href: 'standings.html', icon: 'trophy' },
     { id: 'news', label: 'News', href: 'news.html', icon: 'newspaper' },
     { id: 'profile', label: 'My Profile', href: 'profile.html', icon: 'circle-user-round' },
-    { id: 'rules', label: 'Rules', href: 'index.html#rules', icon: 'book-open' },
+    { id: 'rules', label: 'Rules', href: 'rules.html', icon: 'book-open' },
   ];
 
   const siteName = () => (window.EF_CONFIG && window.EF_CONFIG.SITE_NAME) || 'Game Board';

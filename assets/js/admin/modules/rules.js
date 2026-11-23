@@ -64,8 +64,8 @@
       el.innerHTML = `
         <div class="grid xl:grid-cols-[1fr_360px] gap-6 items-start">
           <section class="glass p-5 sm:p-6">
-            ${admin.panelHead('Rules list', `${EF.utils.plural(list.length, 'rule')} · shown as a numbered list on the home page`,
-              list.length ? `<a href="../index.html#rules" target="_blank" rel="noopener" class="btn btn-ghost btn-xs">${ui.icon('external-link', '')}Preview</a>` : '')}
+            ${admin.panelHead('Rules list', `${EF.utils.plural(list.length, 'rule')} · shown as a numbered list on the rules page`,
+              list.length ? `<a href="../rules.html" target="_blank" rel="noopener" class="btn btn-ghost btn-xs">${ui.icon('external-link', '')}Preview</a>` : '')}
             ${list.length ? `
               <ol class="grid gap-2.5" data-rule-list>
                 ${list.map((rule, i) => `

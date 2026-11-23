@@ -21,9 +21,6 @@ EF.boot(async function homePage() {
     players: qs('#home-players'),
     playersTotal: qs('#players-total'),
     champ: qs('#champ-name'),
-    rules: qs('#rules'),
-    rulesList: qs('#rules-list'),
-    rulesPoints: qs('#rules-points'),
   };
 
   const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[62px]"></div>').join('');
@@ -173,7 +170,6 @@ EF.boot(async function homePage() {
     el.results.innerHTML = panelEmpty('flag', 'No results yet', 'Completed matches will show up here.');
     el.table.innerHTML = panelEmpty('list-ordered', 'Table not available', 'The point table goes live with the tournament.');
     el.players.innerHTML = ui.state.empty({ icon: 'users', title: 'No players yet', message: 'Registrations open when the tournament is published.' });
-    el.rules.hidden = true;
     ui.icons();
   }
 
@@ -360,19 +356,6 @@ EF.boot(async function homePage() {
     }, 150);
   });
 
-  function renderRules(t) {
-    const lines = String(t.rules || '')
-      .split(/\r?\n/)
-      .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
-      .filter(Boolean);
-    el.rulesPoints.innerHTML = [['Win', t.points_win], ['Draw', t.points_draw], ['Loss', t.points_loss]]
-      .map(([label, pts]) => `<span class="meta-chip"><strong class="text-neon font-display text-lg">${e(pts)}</strong> pts · ${label}</span>`).join('');
-    el.rulesList.innerHTML = lines.length
-      ? lines.map((line, i) => `<li class="rule-item"><span class="rule-item__num">${i + 1}</span><span>${e(line)}</span></li>`).join('')
-      : '<li class="text-muted">Rules will be announced by the tournament admin.</li>';
-    el.rules.hidden = false;
-  }
-
   async function load({ silent = false } = {}) {
     if (!silent) showLoading();
     const announcements = loadAnnouncements();
@@ -383,7 +366,6 @@ EF.boot(async function homePage() {
       renderMatches(d);
       renderTable(d);
       renderPlayers(d);
-      renderRules(d.tournament);
       ui.icons();
       await announcements;
       return d;
