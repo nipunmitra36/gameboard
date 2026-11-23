@@ -1229,9 +1229,6 @@ body::after {
 
 /* Inline join panel */
 .join-panel { background: linear-gradient(180deg, rgba(10, 22, 82, 0.92), rgba(5, 12, 46, 0.95)); border: 1.5px solid rgba(var(--neon-rgb), 0.7); border-radius: 14px; box-shadow: 0 0 50px -16px rgba(var(--neon-rgb), 0.45), 0 30px 60px -30px #000; }
-.join-panel .input { background: rgba(4, 10, 40, 0.75); border-color: rgba(140, 160, 255, 0.35); height: 48px; border-radius: 8px; }
-.join-panel .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.join-panel .field > .text-xs { display: none; }
 
 /* Panel heads & compact rows */
 .panel-title { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 800; font-size: 23px; color: #fff; }
@@ -1329,9 +1326,6 @@ body::after {
 .photo-field__preview img { width: 100%; height: 100%; object-fit: cover; }
 .photo-field__preview svg { width: 24px; height: 24px; }
 .photo-field__label { font-size: 13px; font-weight: 600; color: var(--text-soft); }
-.join-panel .photo-field { padding: 10px; gap: 12px; }
-.join-panel .photo-field__preview { width: 52px; height: 52px; }
-.join-panel .photo-field .text-\[11px\] { display: none; }
 
 /* Hero background video */
 .hero-media { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #030720; }
@@ -1412,3 +1406,43 @@ body::after {
 
 /* Home panel empty states: compact, framed */
 #home-upcoming .state, #home-results .state, #home-table .state { padding: 28px 16px; border: 1px dashed rgba(140, 160, 255, 0.25); border-radius: 14px; background: rgba(8, 18, 70, 0.35); }
+
+/* ---------- Home: Join Tournament form ---------- */
+.join-panel { position: relative; overflow: hidden; border-radius: 20px; background: radial-gradient(420px 220px at 100% 0%, rgba(var(--neon-rgb), 0.10), transparent 70%), radial-gradient(380px 240px at 0% 100%, rgba(var(--volt-rgb), 0.18), transparent 70%), linear-gradient(180deg, rgba(12, 26, 96, 0.94), rgba(5, 12, 46, 0.97)); }
+.join-panel::before { content: ''; position: absolute; top: 0; left: 24px; right: 24px; height: 2px; background: linear-gradient(90deg, transparent, var(--neon), var(--volt), transparent); }
+
+/* Slots meter */
+.slots-meter { margin-bottom: 18px; padding: 12px 14px; border-radius: 14px; background: rgba(4, 10, 40, 0.55); border: 1px solid rgba(140, 160, 255, 0.2); }
+.slots-meter__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--text-soft); }
+.slots-meter__row span { display: inline-flex; align-items: center; gap: 6px; }
+.slots-meter__row svg { width: 15px; height: 15px; color: var(--volt); }
+.slots-meter__row b { color: #fff; font-weight: 800; }
+.slots-meter__row strong { font-size: 12px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--neon); }
+.slots-meter__bar { height: 7px; margin-top: 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.slots-meter__bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--volt), var(--neon)); box-shadow: 0 0 12px rgba(var(--neon-rgb), 0.5); transition: width 0.6s ease; }
+.slots-meter.is-low .slots-meter__row strong { color: var(--warn); }
+.slots-meter.is-low .slots-meter__bar i { background: linear-gradient(90deg, var(--warn), #ff6b6b); box-shadow: 0 0 12px rgba(var(--warn-rgb), 0.5); }
+
+/* Labels: small caps above each input */
+.join-panel .label { margin-bottom: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #9fb0e8; }
+.join-panel .field > .text-xs { display: none; }
+
+/* Inputs: taller, icon in its own tile, neon focus */
+.join-panel .input { height: 50px; padding-left: 56px; border-radius: 12px; background: rgba(4, 10, 40, 0.7); border: 1px solid rgba(140, 160, 255, 0.28); font-size: 15px; }
+.join-panel .input:hover { border-color: rgba(140, 160, 255, 0.5); }
+.join-panel .input:focus { border-color: rgba(var(--neon-rgb), 0.8); background: rgba(6, 14, 52, 0.9); box-shadow: 0 0 0 4px rgba(var(--neon-rgb), 0.12), 0 0 24px -8px rgba(var(--neon-rgb), 0.5); }
+.join-panel .input-icon { left: 6px; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; color: #8aa4ff; background: rgba(var(--volt-rgb), 0.14); transition: color 0.2s, background 0.2s; }
+.join-panel .relative:focus-within > .input-icon { color: #0a1240; background: var(--neon); }
+.join-panel .is-invalid + .input-icon, .join-panel .relative:has(.is-invalid) > .input-icon { color: #ff8399; background: rgba(var(--danger-rgb), 0.14); }
+
+/* Photo picker: a highlighted card at the top of the form */
+.join-panel .photo-field { gap: 14px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(90deg, rgba(var(--neon-rgb), 0.07), rgba(4, 10, 40, 0.5) 60%); border: 1px dashed rgba(var(--neon-rgb), 0.4); transition: border-color 0.2s; }
+.join-panel .photo-field:hover { border-color: rgba(var(--neon-rgb), 0.75); }
+.join-panel .photo-field__preview { width: 60px; height: 60px; box-shadow: 0 0 0 4px rgba(var(--neon-rgb), 0.1), 0 0 22px -6px rgba(var(--neon-rgb), 0.6); }
+.join-panel .photo-field__label { color: #fff; font-weight: 700; }
+.join-panel .photo-field .text-\[11px\] { display: none; }
+
+/* Submit + privacy note */
+.join-panel [data-submit] { height: 54px; border-radius: 14px; font-size: 16px; letter-spacing: 0.04em; box-shadow: 0 14px 30px -14px rgba(var(--neon-rgb), 0.8); }
+.reg-note { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--subtle); text-align: center; }
+.reg-note svg { width: 13px; height: 13px; flex-shrink: 0; }

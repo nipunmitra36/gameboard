@@ -22,17 +22,19 @@
       <form novalidate class="grid ${compact ? 'gap-3' : 'gap-4'}" data-reg-form>
         ${intro}
         <div data-form-alert hidden></div>
-        <div class="grid ${compact ? '' : 'sm:grid-cols-2'} gap-${compact ? '3' : '4'}">
+        ${compact ? ui.photoField({ label: 'Your DP' }) : ''}
+        <div class="grid sm:grid-cols-2 gap-${compact ? '3' : '4'}">
           ${ui.field({ name: 'player_name', label: 'Player Name', icon: 'user', placeholder: compact ? 'Your Name' : 'e.g. Alex Morgan', required: true, maxlength: 60, autocomplete: 'name' })}
           ${ui.field({ name: 'team_name', label: 'Team Name', icon: 'shield', placeholder: compact ? 'Team Name' : 'e.g. Northside FC', required: true, maxlength: 60, autocomplete: 'organization' })}
         </div>
         ${ui.field({ name: 'efootball_username', label: 'eFootball Username', icon: 'gamepad-2', placeholder: compact ? 'eFootball Username' : 'Your in-game name', required: true, maxlength: 40, autocomplete: 'nickname', hint: 'Exactly as it appears in eFootball, so opponents can find you.' })}
         ${ui.field({ name: 'email', label: 'Email Address', type: 'email', icon: 'mail', placeholder: compact ? 'Email Address' : 'you@example.com', required: true, maxlength: 254, autocomplete: 'email', hint: 'Used only by the admin to contact you. Never shown publicly.' })}
-        ${ui.photoField({ label: compact ? 'Your DP' : 'Profile Photo (DP)' })}
+        ${compact ? '' : ui.photoField({ label: 'Profile Photo (DP)' })}
         <div class="absolute -left-[9999px] w-px h-px overflow-hidden" aria-hidden="true">
           <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
         </div>
         <button type="submit" class="btn btn-primary btn-lg btn-arrow w-full mt-1" data-submit>${compact ? 'Register Now' : 'Complete Registration'}${ui.icon('chevron-right', '')}</button>
+        ${compact ? `<p class="reg-note">${ui.icon('lock', '')}Your email stays private. ${t.auto_approve ? 'Approved instantly.' : 'The admin reviews every registration.'}</p>` : ''}
       </form>`;
   }
 

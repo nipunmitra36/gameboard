@@ -206,7 +206,21 @@ EF.boot(async function homePage() {
       ${i ? '<span class="info-divider hidden sm:block"></span>' : ''}
       <div class="info-item">${ui.icon(icon, '')}<div class="min-w-0"><p class="info-item__label">${e(label)}</p><p class="info-item__value">${e(value)}</p></div></div>`).join('');
 
-    el.slots.textContent = t.max_players ? `${Math.max(0, t.max_players - d.players.length)} slots left` : '';
+    if (t.max_players) {
+      const taken = Math.min(d.players.length, t.max_players);
+      const left = t.max_players - taken;
+      const pct = Math.round((taken / t.max_players) * 100);
+      el.slots.innerHTML = `
+        <div class="slots-meter${left <= Math.ceil(t.max_players * 0.2) ? ' is-low' : ''}" role="meter" aria-valuemin="0" aria-valuemax="${t.max_players}" aria-valuenow="${taken}" aria-label="Registered players">
+          <div class="slots-meter__row">
+            <span>${ui.icon('users', '')}<b>${taken}</b> / ${t.max_players} registered</span>
+            <strong>${left ? `${left} ${left === 1 ? 'slot' : 'slots'} left` : 'Full'}</strong>
+          </div>
+          <div class="slots-meter__bar"><i style="width:${pct}%"></i></div>
+        </div>`;
+    } else {
+      el.slots.innerHTML = '';
+    }
     EF.registration.mountInline(el.joinPanel, t);
   }
 
