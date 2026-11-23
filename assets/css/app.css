@@ -1477,3 +1477,12 @@ body::after {
   .ticker__viewport { overflow-x: auto; scrollbar-width: none; }
   .ticker__group[aria-hidden="true"] { display: none; }
 }
+
+/* ---------- Brand logo: spinning football ---------- */
+.ef-logo { overflow: visible; filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.35)); }
+.ef-logo__ball { transform-box: view-box; transform-origin: 20px 20px; animation: ef-ball-spin 6s linear infinite; }
+.ef-logo__ring { transform-box: view-box; transform-origin: 20px 20px; animation: ef-ball-spin 14s linear infinite reverse; }
+a:hover > .ef-logo .ef-logo__ball, .ef-logo:hover .ef-logo__ball { animation-duration: 1.4s; }
+a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
+@keyframes ef-ball-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ef-logo__ball, .ef-logo__ring { animation: none; } }

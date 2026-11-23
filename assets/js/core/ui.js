@@ -12,17 +12,55 @@
   };
   ui.icon = (name, cls = 'w-4 h-4') => `<i data-lucide="${name}" class="${cls}" aria-hidden="true"></i>`;
 
-  // Each logo gets its own gradient id: a shared id breaks when the first copy is hidden.
+  // Football geometry (viewBox 0 0 40 40), computed once: a central pentagon,
+  // five edge pentagons that the ball outline clips, and the seams between them.
+  const BALL = (() => {
+    const pt = (cx, cy, r, deg) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
+    const pent = (cx, cy, r, rot) => Array.from({ length: 5 }, (_, k) => pt(cx, cy, r, rot + k * 72));
+    const d = (pts) => `M${pts.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join('L')}Z`;
+    const centre = pent(20, 20, 5.4, -90);
+    const outer = [-54, 18, 90, 162, 234].map((a) => {
+      const [cx, cy] = pt(20, 20, 16.2, a);
+      return pent(cx, cy, 5.6, a + 180);
+    });
+    const seams = [];
+    centre.forEach(([x, y], k) => {
+      const v = -90 + k * 72;
+      const [ex, ey] = pt(20, 20, 10.6, v);
+      seams.push(`M${x.toFixed(2)} ${y.toFixed(2)}L${ex.toFixed(2)} ${ey.toFixed(2)}`);
+      // Join the seam end to the nearest corner of each neighbouring edge pentagon.
+      [outer[(k + 4) % 5], outer[k]].forEach((poly) => {
+        const [nx, ny] = poly.reduce((best, q) => (Math.hypot(q[0] - ex, q[1] - ey) < Math.hypot(best[0] - ex, best[1] - ey) ? q : best));
+        seams.push(`M${ex.toFixed(2)} ${ey.toFixed(2)}L${nx.toFixed(2)} ${ny.toFixed(2)}`);
+      });
+    });
+    return { patches: [centre, ...outer].map(d).join(''), seams: seams.join('') };
+  })();
+
+  // Each logo gets its own gradient ids: a shared id breaks when the first copy is hidden.
   let logoCount = 0;
   ui.logo = (size = 38) => {
     logoCount += 1;
-    const g = `ef-logo-g${logoCount}`;
+    const id = `ef-logo${logoCount}`;
     return `
-    <svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true" class="shrink-0 drop-shadow-[0_0_10px_rgba(212, 255, 26,0.35)]">
-      <defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d4ff1a"/><stop offset="1" stop-color="#3d6bff"/></linearGradient></defs>
-      <circle cx="20" cy="20" r="17" fill="#0b1326" stroke="url(#${g})" stroke-width="2"/>
-      <path d="m20 11 6 4.4-2.3 7.1h-7.4L14 15.4z" fill="url(#${g})"/>
-      <path d="m20 11 0-7m6 11.4 8.6-3m-10.9 10.1 5.3 8.3m-12.7-8.3L11 30.8M14 15.4l-8.6-3" fill="none" stroke="url(#${g})" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    <svg width="${size}" height="${size}" viewBox="0 0 40 40" aria-hidden="true" class="ef-logo shrink-0">
+      <defs>
+        <linearGradient id="${id}-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d4ff1a"/><stop offset=".55" stop-color="#7df0c0"/><stop offset="1" stop-color="#3d6bff"/></linearGradient>
+        <radialGradient id="${id}-ball" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#e4e9f7"/><stop offset="1" stop-color="#9aa6c8"/></radialGradient>
+        <radialGradient id="${id}-shade" cx=".36" cy=".3" r=".8"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#050b26" stop-opacity=".55"/></radialGradient>
+        <clipPath id="${id}-clip"><circle cx="20" cy="20" r="14.6"/></clipPath>
+      </defs>
+      <g class="ef-logo__ring"><circle cx="20" cy="20" r="18.6" fill="none" stroke="url(#${id}-ring)" stroke-width="1.8" stroke-dasharray="80 6 18 6" stroke-linecap="round"/></g>
+      <circle cx="20" cy="20" r="14.6" fill="url(#${id}-ball)"/>
+      <g clip-path="url(#${id}-clip)">
+        <g class="ef-logo__ball">
+          <path d="${BALL.patches}" fill="#0c1430"/>
+          <path d="${BALL.seams}" fill="none" stroke="#2a3558" stroke-width=".9" stroke-linecap="round"/>
+        </g>
+      </g>
+      <circle cx="20" cy="20" r="14.6" fill="url(#${id}-shade)"/>
+      <ellipse cx="15.2" cy="12.6" rx="4.6" ry="2.6" fill="#fff" opacity=".55" transform="rotate(-28 15.2 12.6)"/>
+      <circle cx="20" cy="20" r="14.6" fill="none" stroke="rgba(212,255,26,.55)" stroke-width=".6"/>
     </svg>`;
   };
 
