@@ -10,7 +10,7 @@ EF.boot(async function profilePage() {
     root.innerHTML = `
       <div class="max-w-xl">
         <h2 class="font-display text-2xl font-bold uppercase text-white">Sign in with email</h2>
-        <p class="text-sm text-muted mt-2">We’ll send a one-time code to the email address on your player registration.</p>
+        <p class="text-sm text-muted mt-2">We’ll email you a secure sign-in link. You must be able to open that inbox to access your profile.</p>
         <form class="mt-6 grid gap-4" data-profile-email-form novalidate>
           ${ui.field({
             name: 'email',
@@ -24,7 +24,7 @@ EF.boot(async function profilePage() {
             autocomplete: 'email',
           })}
           <div data-form-alert hidden></div>
-          <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('send')}Send sign-in code</button>
+          <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('send')}Email me a sign-in link</button>
         </form>
       </div>`;
     const form = root.querySelector('[data-profile-email-form]');
@@ -40,12 +40,12 @@ EF.boot(async function profilePage() {
         return;
       }
       const button = form.querySelector('[type="submit"]');
-      ui.setLoading(button, true, 'Sending code');
+      ui.setLoading(button, true, 'Sending sign-in link');
       try {
-        await EF.api.sendPlayerLoginCode(email);
+        await EF.api.sendPlayerLoginLink(email);
         state.email = email;
-        renderCodeForm();
-        ui.toast('A sign-in code was sent to your email.', 'success');
+        renderLinkSent();
+        ui.toast('A secure sign-in link was sent to your email.', 'success');
       } catch (err) {
         ui.setLoading(button, false);
         ui.formAlert(form, EF.api.friendlyError(err));
@@ -54,58 +54,22 @@ EF.boot(async function profilePage() {
     ui.icons();
   }
 
-  function renderCodeForm(message = '') {
+  function renderLinkSent() {
     root.innerHTML = `
       <div class="max-w-xl">
         <h2 class="font-display text-2xl font-bold uppercase text-white">Check your inbox</h2>
-        <p class="text-sm text-muted mt-2">Enter the one-time code sent to <strong class="text-white">${e(state.email)}</strong>.</p>
-        <form class="mt-6 grid gap-4" data-profile-code-form novalidate>
-          ${ui.field({
-            name: 'token',
-            label: 'Email sign-in code',
-            icon: 'key-round',
-            placeholder: 'Enter the code from your email',
-            required: true,
-            maxlength: 10,
-            autocomplete: 'one-time-code',
-            attrs: 'inputmode="numeric" pattern="[0-9]{6,10}"',
-          })}
-          <div data-form-alert hidden></div>
-          <button type="submit" class="btn btn-primary w-full sm:w-auto">${ui.icon('key-round')}Verify code</button>
-          <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-            <button type="button" class="text-soft hover:text-neon" data-profile-resend>Send a new code</button>
-            <button type="button" class="text-soft hover:text-neon" data-profile-change-email>Use a different email</button>
-          </div>
-        </form>
+        <p class="text-sm text-muted mt-2">We sent a secure sign-in link to <strong class="text-white">${e(state.email)}</strong>. Open the email and click the link to return here. Check your spam folder if it doesn’t arrive.</p>
+        <div class="flex flex-wrap gap-x-5 gap-y-2 text-sm mt-5">
+          <button type="button" class="text-soft hover:text-neon" data-profile-resend>Email me another link</button>
+          <button type="button" class="text-soft hover:text-neon" data-profile-change-email>Use a different email</button>
+        </div>
       </div>`;
-    const form = root.querySelector('[data-profile-code-form]');
-    ui.liveClear(form);
-    form.addEventListener('input', () => ui.formAlert(form, ''));
-    if (message) ui.formAlert(form, message);
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const token = String(form.elements.token.value || '').trim();
-      if (!/^\d{6,10}$/.test(token)) {
-        ui.showErrors(form, { token: 'Enter the numeric code from your email (6–10 digits).' });
-        return;
-      }
-      const button = form.querySelector('[type="submit"]');
-      ui.setLoading(button, true, 'Verifying code');
-      try {
-        state.session = await EF.api.verifyPlayerLoginCode(state.email, token);
-        if (!state.session) throw new Error('Email verification did not create a session. Please try again.');
-        await loadDashboard();
-      } catch (err) {
-        ui.setLoading(button, false);
-        ui.formAlert(form, EF.api.friendlyError(err));
-      }
-    });
     root.querySelector('[data-profile-resend]').addEventListener('click', async (event) => {
       const button = event.currentTarget;
-      ui.setLoading(button, true, 'Sending code');
+      ui.setLoading(button, true, 'Sending link');
       try {
-        await EF.api.sendPlayerLoginCode(state.email);
-        ui.toast('A new sign-in code was sent.', 'success');
+        await EF.api.sendPlayerLoginLink(state.email);
+        ui.toast('A new sign-in link was sent.', 'success');
       } catch (err) {
         ui.toast(EF.api.friendlyError(err), 'error');
       } finally {

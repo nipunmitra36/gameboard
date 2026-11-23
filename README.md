@@ -80,7 +80,7 @@ Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 1. **Create a project** at [supabase.com](https://supabase.com).
 2. **Run the SQL** in *SQL Editor*: paste the whole of `supabase/setup_all.sql` and click **Run**. It ends by listing the 6 tables, 2 views and 5 key functions it created.
    (`setup_all.sql` is simply `01_schema.sql` + `02_policies.sql` combined; you can run those two in order instead.) All files are safe to re-run.
-3. **Enable player email sign-in:** go to *Authentication → Sign In / Providers*, enable **Allow new users to sign up** and email confirmations. The profile page uses one-time email codes; in the Supabase email template, include `{{ .Token }}` so the email contains the code. No password is used for player profiles.
+3. **Enable player email sign-in:** go to *Authentication → Sign In / Providers* and enable **Allow new users to sign up** and email confirmations. Under *Authentication → URL Configuration*, add your deployed `profile.html` URL to the redirect URL allow list (and your local profile URL if testing locally). Keep `{{ .ConfirmationURL }}` in both the **Confirm signup** and **Magic Link** email templates. Players receive a secure link and must open it from their email; no password or manually entered code is used for player profiles.
 4. **Create the admin user:** go to *Authentication → Users → Add user*, enter an email and a strong password, and tick **Auto Confirm User**.
 5. **Grant admin rights:** edit the email in `supabase/03_admin_setup.sql` and run it. Repeat for each extra admin.
 6. **Connect the frontend:** copy *Project Settings → API → Project URL* and the **anon public** key into `assets/js/config.js`:
@@ -99,7 +99,7 @@ Set `BACKEND: 'supabase'` in `assets/js/config.js`, then:
 
 Before switching from local mode, download **Settings → Export backup (.json)** in the browser that contains the current data. The import also offers **Export this browser's local data** after switching.
 
-Players can open **My Profile** and request a one-time email code using the same address as their registration. The code must be included in the Supabase email template with `{{ .Token }}`; the profile form accepts numeric codes from 6 to 10 digits to support customized OTP lengths. Only a confirmed email matching a player registration can read that player's safe profile fields. Players can update their player name, eFootball username and profile photo; changes apply to all registrations for that email. Tournament statistics are shown for published tournaments. This profile feature is Supabase-only.
+Players can open **My Profile** and request a secure sign-in link using the same address as their registration. Only someone with access to that email inbox can follow the link and read the matching player's safe profile fields. Players can update their player name, eFootball username and profile photo; changes apply to all registrations for that email. Tournament statistics are shown for published tournaments. This profile feature is Supabase-only.
 
 ## 5. Run locally
 
@@ -192,7 +192,8 @@ The home hero uses the background video at `assets/img/Free Update Released on S
 | Yellow "Setup required" bar | For Google Sheets, configure `APPS_SCRIPT_URL` and `BACKEND: 'google_script'` in `assets/js/config.js`; for Supabase, set its URL and anon key |
 | `PGRST205` / table missing from schema cache | Run `supabase/setup_all.sql` in the Supabase SQL Editor. If it already succeeded, run `notify pgrst, 'reload schema';` and check that `public` is an exposed schema |
 | Profile page says profile functions are missing | Run the latest `supabase/setup_all.sql` in the SQL Editor, then reload the site |
-| Player email code cannot be sent | Enable Supabase sign-ups and email confirmations, and ensure the email template includes `{{ .Token }}` |
+| Player sign-in link cannot be sent or does not return to the profile | Enable Supabase sign-ups and email confirmations, allow the deployed `profile.html` URL in *Authentication → URL Configuration*, and ensure **Confirm signup** and **Magic Link** templates use `{{ .ConfirmationURL }}` |
+| Too many attempts when requesting a player sign-in link | Wait for Supabase's email cooldown before trying again. Review *Authentication → Rate Limits* and configure custom SMTP for more reliable email delivery |
 | "You do not have permission to perform this action" while loading public data | Re-run the updated `supabase/setup_all.sql` in the Supabase SQL Editor to grant the required table privileges, then hard-refresh the site |
 | Other browsers do not show local-mode data | Local mode stores data in that browser only. Set up Google Sheets or Supabase for shared data |
 | Site says "Season Loading" / no tournament | In admin **Settings**, make sure **Published** is on |

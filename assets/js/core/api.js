@@ -252,22 +252,15 @@
       return data.session;
     },
 
-    async sendPlayerLoginCode(email) {
+    async sendPlayerLoginLink(email) {
+      const redirectUrl = new URL(window.location.href);
+      redirectUrl.search = '';
+      redirectUrl.hash = '';
       const { error } = await db().auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        options: { shouldCreateUser: true },
+        options: { shouldCreateUser: true, emailRedirectTo: redirectUrl.href },
       });
       if (error) throw error;
-    },
-
-    async verifyPlayerLoginCode(email, token) {
-      const { data, error } = await db().auth.verifyOtp({
-        email: email.trim().toLowerCase(),
-        token: String(token || '').trim(),
-        type: 'email',
-      });
-      if (error) throw error;
-      return data.session;
     },
 
     async signOut() {
