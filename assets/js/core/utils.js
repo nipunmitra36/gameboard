@@ -177,11 +177,12 @@
         if (!file) { reject(new Error('No file selected.')); return; }
         if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) { reject(new Error('Choose a JPG, PNG or WebP image.')); return; }
         if (file.size > 15 * 1024 * 1024) { reject(new Error('Image must be 15 MB or smaller.')); return; }
-        const url = URL.createObjectURL(file);
+        // Read as a data: URL (not blob:): the site's Content-Security-Policy only allows img-src 'self' data:.
+        const reader = new FileReader();
         const img = new Image();
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That image could not be read.')); };
+        reader.onerror = () => reject(new Error('That image could not be read. Try saving it again as JPG or PNG.'));
+        img.onerror = () => reject(new Error('That image could not be read. Try saving it again as JPG or PNG.'));
         img.onload = () => {
-          URL.revokeObjectURL(url);
           const attempts = [[1600, 0.82], [1400, 0.75], [1200, 0.7], [1000, 0.65], [800, 0.6]];
           for (const [maxSide, quality] of attempts) {
             const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
@@ -198,7 +199,8 @@
           }
           reject(new Error('That image is too detailed to store. Try a smaller screenshot.'));
         };
-        img.src = url;
+        reader.onload = () => { img.src = reader.result; };
+        reader.readAsDataURL(file);
       });
     },
 

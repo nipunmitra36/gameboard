@@ -340,12 +340,15 @@
       const score = Number.isInteger(match.home_score) && Number.isInteger(match.away_score) ? ` · ${match.home_score} - ${match.away_score}` : '';
       modal.setBody(`
         <figure class="proof-view">
-          <a href="${src}" target="_blank" rel="noopener" class="proof-view__img" title="Open full size"><img src="${src}" alt="Result proof for ${e(title)}"></a>
+          <button type="button" class="proof-view__img" title="Click to zoom" data-proof-zoom><img src="${src}" alt="Result proof for ${e(title)}"></button>
           <figcaption class="proof-view__cap">
             <span>${ui.icon('shield-check', '')}<b>${e(title)}</b>${e(score)}</span>
             <a href="${src}" download="match-proof-${e(String(match.id).slice(0, 8))}.jpg" class="btn btn-ghost btn-xs">${ui.icon('download', '')}Download</a>
           </figcaption>
         </figure>`);
+      // Browsers block opening data: URLs in a new tab, so zoom in place instead.
+      const zoom = modal.body.querySelector('[data-proof-zoom]');
+      zoom.addEventListener('click', () => zoom.classList.toggle('is-zoomed'));
       ui.icons();
     } catch (err) {
       console.error(err);

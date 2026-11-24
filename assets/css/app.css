@@ -1634,3 +1634,6 @@ a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
 .proof-view__cap > span { display: inline-flex; align-items: center; gap: 6px; }
 .proof-view__cap svg { width: 16px; height: 16px; color: #4ade80; }
 .proof-view__cap b { color: #fff; }
+.proof-view__img { width: 100%; padding: 0; overflow: auto; max-height: 72vh; }
+.proof-view__img.is-zoomed { cursor: zoom-out; }
+.proof-view__img.is-zoomed img { max-height: none; width: 200%; max-width: none; }
