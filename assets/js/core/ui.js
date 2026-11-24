@@ -38,6 +38,9 @@
   })();
 
   // Each logo gets its own gradient ids: a shared id breaks when the first copy is hidden.
+  // Gold crown used for match winners (gradient id is shared; every copy is identical).
+  const CROWN_SVG = `<svg viewBox="0 0 32 24" width="100%" height="100%"><defs><linearGradient id="ef-crown-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3a8"/><stop offset=".45" stop-color="#ffd23f"/><stop offset="1" stop-color="#e08a00"/></linearGradient></defs><path d="M3 8.5 9.5 13 16 3l6.5 10L29 8.5 26.5 20h-21z" fill="url(#ef-crown-g)" stroke="#8a4b00" stroke-width="1.3" stroke-linejoin="round"/><rect x="5.5" y="19.5" width="21" height="3" rx="1.2" fill="url(#ef-crown-g)" stroke="#8a4b00" stroke-width="1.1"/><circle cx="16" cy="3" r="2" fill="#ff4d6d" stroke="#8a4b00" stroke-width=".8"/><circle cx="3" cy="8.5" r="1.7" fill="#4ade80" stroke="#8a4b00" stroke-width=".8"/><circle cx="29" cy="8.5" r="1.7" fill="#4ade80" stroke="#8a4b00" stroke-width=".8"/><circle cx="16" cy="15" r="1.6" fill="#3d6bff"/></svg>`;
+
   let logoCount = 0;
   ui.logo = (size = 38) => {
     logoCount += 1;
@@ -317,6 +320,26 @@
   };
 
   /** Profile-photo picker: preview + upload/remove. Value lives in a hidden input named `name`. */
+  /** Avatar with a floating crown + gold ring when `win` is true; dimmed when `lose` is true. */
+  ui.winnerAvatar = (who, size = 'md', { win = false, lose = false } = {}) => `
+    <span class="win-avatar${win ? ' is-win' : ''}${lose ? ' is-lose' : ''}">
+      ${ui.avatar(who, size)}
+      ${win ? `<span class="win-crown" aria-hidden="true">${CROWN_SVG}</span>` : ''}
+    </span>`;
+
+  /** "Winner" ribbon shown under the winning player's name. */
+  ui.winChip = (label = 'Winner') => `<span class="win-chip">${ui.icon('trophy', '')}${e(label)}</span>`;
+
+  /** Winner / draw for a match: { homeWin, awayWin, draw } (only for completed matches with scores). */
+  ui.matchOutcome = (m) => {
+    const done = m && m.status === 'completed' && Number.isInteger(m.home_score) && Number.isInteger(m.away_score);
+    return {
+      homeWin: done && m.home_score > m.away_score,
+      awayWin: done && m.away_score > m.home_score,
+      draw: done && m.home_score === m.away_score,
+    };
+  };
+
   ui.photoField = ({ name = 'avatar_url', value = '', label = 'Profile Photo (DP)', playerName = '' } = {}) => {
     const has = EF.utils.isAvatarData(value);
     return `
@@ -504,20 +527,20 @@
 
   ui.matchCard = function (m) {
     const scored = hasScore(m);
-    const homeWin = scored && m.status === 'completed' && m.home_score > m.away_score;
-    const awayWin = scored && m.status === 'completed' && m.away_score > m.home_score;
+    const { homeWin, awayWin, draw } = ui.matchOutcome(m);
 
-    const side = (player, winner, alignRight) => `
-      <div class="flex items-center gap-3 min-w-0 ${alignRight ? 'flex-row-reverse text-right' : ''}">
-        <span class="hidden min-[400px]:inline-flex">${ui.avatar(player || 'TBD')}</span>
+    const side = (player, winner, loser, alignRight) => `
+      <div class="match-side flex items-center gap-3 min-w-0 ${alignRight ? 'flex-row-reverse text-right' : ''}${winner ? ' is-win' : ''}${loser ? ' is-lose' : ''}">
+        <span class="hidden min-[400px]:inline-flex">${ui.winnerAvatar(player || 'TBD', 'md', { win: winner, lose: loser })}</span>
         <div class="min-w-0">
-          <p class="font-display text-[17px] sm:text-lg font-bold leading-tight truncate ${winner ? 'text-neon' : 'text-white'}">${e(player ? player.player_name : 'TBD')}</p>
+          <p class="font-display text-[17px] sm:text-lg font-bold leading-tight truncate ${winner ? 'text-gold' : 'text-white'}">${winner ? `<span class="min-[400px]:hidden">👑 </span>` : ''}${e(player ? player.player_name : 'TBD')}</p>
           <p class="text-xs text-muted truncate">${e(player ? player.team_name : '—')}</p>
+          ${winner ? ui.winChip() : ''}
         </div>
       </div>`;
 
     const centre = scored
-      ? `<div class="scoreline ${m.status === 'live' ? 'is-live' : ''}" aria-label="Score ${m.home_score} to ${m.away_score}"><span>${m.home_score}</span><span class="scoreline__sep">:</span><span>${m.away_score}</span></div>`
+      ? `<div class="text-center"><div class="scoreline ${m.status === 'live' ? 'is-live' : ''}" aria-label="Score ${m.home_score} to ${m.away_score}"><span class="${homeWin ? 'is-win' : ''}">${m.home_score}</span><span class="scoreline__sep">:</span><span class="${awayWin ? 'is-win' : ''}">${m.away_score}</span></div>${draw ? '<span class="draw-chip">Draw</span>' : ''}</div>`
       : `<div class="text-center px-1"><p class="vs">VS</p><p class="text-[11px] text-muted mt-0.5 whitespace-nowrap">${e(formatTime(m.scheduled_at))}</p></div>`;
 
     const resultTone = m.status === 'completed' ? 'text-neon' : m.status === 'live' ? 'text-danger' : m.status === 'postponed' ? 'text-warn' : 'text-muted';
@@ -532,9 +555,9 @@
           ${ui.matchStatusBadge(m.status)}
         </header>
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4 mt-4">
-          ${side(m.home, homeWin, false)}
+          ${side(m.home, homeWin, awayWin, false)}
           ${centre}
-          ${side(m.away, awayWin, true)}
+          ${side(m.away, awayWin, homeWin, true)}
         </div>
         <footer class="mt-4 pt-3 border-t border-white/5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
           <span class="inline-flex items-center gap-1.5">${ui.icon('calendar', 'w-3.5 h-3.5')}<span>${e(day)}</span></span>
@@ -633,14 +656,14 @@
     const day = relativeDay(m.scheduled_at) || formatDate(m.scheduled_at, { day: 'numeric', month: 'short' });
     const home = m.home || { player_name: 'TBD' };
     const away = m.away || { player_name: 'TBD' };
-    const done = m.status === 'completed' && scored;
-    const homeWin = done && m.home_score > m.away_score;
-    const awayWin = done && m.away_score > m.home_score;
+    const { homeWin, awayWin, draw } = ui.matchOutcome(m);
+    const done = homeWin || awayWin || draw;
     const side = (p, win, lose, align) => `
       <div class="mcard__side mcard__side--${align}${win ? ' is-win' : ''}${lose ? ' is-lose' : ''}">
-        <span class="mcard__dp">${ui.avatar(p, 'lg')}${win ? `<span class="mcard__crown">${ui.icon('crown', '')}</span>` : ''}</span>
+        <span class="mcard__dp">${ui.winnerAvatar(p, 'lg', { win, lose })}</span>
         <p class="mcard__name">${e(p.player_name || 'TBD')}</p>
         <p class="mcard__team">${e(p.team_name || '—')}</p>
+        ${win ? ui.winChip() : ''}
       </div>`;
     const status = m.status === 'live'
       ? '<span class="mcard__chip mcard__chip--live"><span class="live-dot"></span>Live</span>'
@@ -651,7 +674,7 @@
           : `<span class="mcard__chip">${ui.icon('calendar', '')}${e(day)}</span>`;
     const mid = scored
       ? `<div class="mcard__score${m.status === 'live' ? ' is-live' : ''}"><span class="${homeWin ? 'is-win' : ''}">${m.home_score}</span><i>:</i><span class="${awayWin ? 'is-win' : ''}">${m.away_score}</span></div>
-         <p class="mcard__when">${e(done ? day : formatTime(m.scheduled_at))}</p>`
+         ${draw ? '<span class="draw-chip">Draw</span>' : `<p class="mcard__when">${e(done ? day : formatTime(m.scheduled_at))}</p>`}`
       : `<div class="mcard__vs">VS</div><p class="mcard__when">${ui.icon('clock', '')}${e(formatTime(m.scheduled_at))}</p>`;
     return `
       <a href="fixtures.html" class="mcard mcard--${e(m.status)}" title="${e(home.player_name || 'TBD')} vs ${e(away.player_name || 'TBD')}">

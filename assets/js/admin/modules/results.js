@@ -32,18 +32,20 @@
       </select>`;
     const overdue = m.status === 'upcoming' && new Date(m.scheduled_at) < Date.now();
 
+    const { homeWin, awayWin, draw } = ui.matchOutcome(m);
     return `
       <form class="result-row glass p-4 sm:p-5" data-result="${e(m.id)}" novalidate>
         <div class="flex flex-wrap items-center gap-2 text-xs text-muted">
           <span class="font-semibold uppercase tracking-[.14em]">${m.round ? `Round ${e(m.round)}` : 'Fixture'}</span>
           <span>·</span><span>${e(relativeDay(m.scheduled_at) || formatDate(m.scheduled_at, { weekday: 'short', day: '2-digit', month: 'short' }))}, ${e(formatTime(m.scheduled_at))}</span>
           ${overdue ? `<span class="badge badge--pending !h-6">${ui.icon('circle-alert', '')}Past kickoff</span>` : ''}
+          ${draw ? '<span class="draw-chip !mt-0">Draw</span>' : ''}
           <span class="ml-auto">${ui.matchStatusBadge(m.status)}</span>
         </div>
         <div class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-5 mt-4">
           <div class="flex items-center gap-3 justify-end text-right min-w-0">
-            <div class="min-w-0"><p class="font-display text-lg font-bold text-white truncate">${e(m.home ? m.home.player_name : 'Unknown')}</p><p class="text-xs text-muted truncate">${e(m.home ? m.home.team_name : '')}</p></div>
-            <span class="hidden sm:inline-flex">${ui.avatar(m.home || '?')}</span>
+            <div class="min-w-0"><p class="font-display text-lg font-bold truncate ${homeWin ? 'text-gold' : 'text-white'}">${e(m.home ? m.home.player_name : 'Unknown')}</p><p class="text-xs text-muted truncate">${e(m.home ? m.home.team_name : '')}</p>${homeWin ? ui.winChip() : ''}</div>
+            <span class="hidden sm:inline-flex">${ui.winnerAvatar(m.home || '?', 'md', { win: homeWin, lose: awayWin })}</span>
           </div>
           <div class="flex items-center gap-2">
             <label class="sr-only" for="hs-${e(m.id)}">${e(m.home ? m.home.player_name : 'Home')} score</label>
@@ -53,8 +55,8 @@
             <input id="as-${e(m.id)}" name="away_score" type="number" inputmode="numeric" min="0" max="99" class="input input-score" value="${m.away_score ?? ''}" placeholder="–">
           </div>
           <div class="flex items-center gap-3 min-w-0">
-            <span class="hidden sm:inline-flex">${ui.avatar(m.away || '?')}</span>
-            <div class="min-w-0"><p class="font-display text-lg font-bold text-white truncate">${e(m.away ? m.away.player_name : 'Unknown')}</p><p class="text-xs text-muted truncate">${e(m.away ? m.away.team_name : '')}</p></div>
+            <span class="hidden sm:inline-flex">${ui.winnerAvatar(m.away || '?', 'md', { win: awayWin, lose: homeWin })}</span>
+            <div class="min-w-0"><p class="font-display text-lg font-bold truncate ${awayWin ? 'text-gold' : 'text-white'}">${e(m.away ? m.away.player_name : 'Unknown')}</p><p class="text-xs text-muted truncate">${e(m.away ? m.away.team_name : '')}</p>${awayWin ? ui.winChip() : ''}</div>
           </div>
         </div>
         <div class="mt-4 flex flex-wrap items-center justify-end gap-2">

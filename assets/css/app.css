@@ -1357,12 +1357,8 @@ body::after {
 .mcard__side { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; gap: 2px; }
 .mcard__dp { position: relative; display: inline-flex; margin-bottom: 6px; }
 .mcard__dp .avatar { width: 52px; height: 52px; border-radius: 50%; border: 2px solid rgba(140, 160, 255, 0.45); box-shadow: 0 8px 18px -10px #000; font-size: 17px; }
-.mcard__side.is-win .mcard__dp .avatar { border-color: var(--neon); box-shadow: 0 0 0 4px rgba(var(--neon-rgb), 0.14), 0 8px 18px -10px #000; }
 .mcard__side.is-lose { opacity: 0.62; }
-.mcard__crown { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--neon); color: #0a1240; box-shadow: 0 2px 8px rgba(var(--neon-rgb), 0.5); }
-.mcard__crown svg { width: 12px; height: 12px; }
 .mcard__name { max-width: 100%; font-weight: 700; font-size: 14.5px; line-height: 1.2; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mcard__side.is-win .mcard__name { color: var(--neon); }
 .mcard__team { max-width: 100%; font-size: 11.5px; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mcard__mid { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 64px; }
 .mcard__vs { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; font-family: var(--font-display); font-style: italic; font-weight: 900; font-size: 19px; color: var(--neon); background: rgba(var(--neon-rgb), 0.07); border: 1px solid rgba(var(--neon-rgb), 0.35); box-shadow: 0 0 22px -6px rgba(var(--neon-rgb), 0.45); }
@@ -1583,3 +1579,30 @@ a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
 .reg-card--rejected { border-left-color: #ff4d6d; }
 .reg-card .avatar { box-shadow: 0 0 0 3px rgba(140, 160, 255, 0.2); }
 @media (min-width: 768px) { .reg-card { flex-direction: row; align-items: center; } .reg-card > div:last-child { justify-content: flex-end; } }
+
+/* ---------- Match winner: crown, gold ring, ribbon ---------- */
+:root { --gold: #ffd23f; --gold-rgb: 255, 210, 63; }
+.text-gold { color: var(--gold); }
+.win-avatar { position: relative; display: inline-flex; flex-shrink: 0; }
+.win-avatar .avatar { border-radius: 50%; transition: box-shadow 0.3s, opacity 0.3s, filter 0.3s; }
+.win-avatar.is-win .avatar { box-shadow: 0 0 0 2.5px var(--gold), 0 0 0 6px rgba(var(--gold-rgb), 0.18), 0 0 26px rgba(var(--gold-rgb), 0.55) !important; border-color: transparent !important; }
+.win-avatar.is-lose .avatar { filter: grayscale(0.6); opacity: 0.6; }
+.win-crown { position: absolute; left: 50%; top: 0; width: 62%; min-width: 20px; max-width: 34px; aspect-ratio: 4 / 3; transform: translate(-50%, -72%) rotate(-8deg); filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(var(--gold-rgb), 0.6)); animation: crown-float 2.6s ease-in-out infinite; pointer-events: none; z-index: 2; }
+.win-crown svg { display: block; }
+@keyframes crown-float { 0%, 100% { transform: translate(-50%, -72%) rotate(-8deg); } 50% { transform: translate(-50%, -88%) rotate(4deg); } }
+.win-avatar.is-win::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; background: conic-gradient(from 0deg, transparent 0 70%, rgba(var(--gold-rgb), 0.9) 85%, transparent 100%); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px)); mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px)); animation: ef-ball-spin 3s linear infinite; }
+.win-chip { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; padding: 2px 8px 2px 6px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #3a2400; background: linear-gradient(180deg, #fff1a0, var(--gold) 55%, #f0a500); box-shadow: 0 4px 12px -4px rgba(var(--gold-rgb), 0.7); white-space: nowrap; }
+.win-chip svg { width: 11px; height: 11px; }
+.draw-chip { display: inline-block; margin-top: 6px; padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #cbd5ff; background: rgba(203, 213, 255, 0.1); border: 1px solid rgba(203, 213, 255, 0.3); }
+.scoreline span.is-win, .mcard__score span.is-win { color: var(--gold); text-shadow: 0 0 14px rgba(var(--gold-rgb), 0.55); }
+.match-side.is-lose { opacity: 0.7; }
+.match-card:has(.match-side.is-win) { border-color: rgba(var(--gold-rgb), 0.28); }
+.mcard__dp .win-avatar.is-win .avatar { border-color: transparent; }
+.mcard__side.is-win .mcard__name { color: var(--gold); }
+.mcard__side.is-lose { opacity: 1; }
+.mcard__side.is-lose .mcard__name, .mcard__side.is-lose .mcard__team { opacity: 0.6; }
+.mcard:has(.is-win) { border-color: rgba(var(--gold-rgb), 0.3); }
+.mcard__side .win-chip { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .win-crown, .win-avatar.is-win::after { animation: none; } }
+.win-avatar.is-win { margin-top: 14px; }
+.mcard:has(.is-win) .mcard__body { padding-top: 20px; }
