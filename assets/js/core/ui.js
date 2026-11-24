@@ -330,7 +330,7 @@
   /** Open a match's proof screenshot in a dialog (fetched on demand). */
   ui.openProof = async function (match) {
     const title = match && match.home && match.away ? `${match.home.player_name} vs ${match.away.player_name}` : 'Match proof';
-    const modal = ui.modal({ title: 'Result proof', size: 'lg', body: ui.state.loading('Loading proof') });
+    const modal = ui.modal({ title: 'Overview', size: 'lg', body: ui.state.loading('Loading overview') });
     try {
       const src = (match && match.proof_url) || await EF.api.getMatchProof(match.id);
       if (!EF.utils.isProofData(src)) {
@@ -340,7 +340,7 @@
       const score = Number.isInteger(match.home_score) && Number.isInteger(match.away_score) ? ` · ${match.home_score} - ${match.away_score}` : '';
       modal.setBody(`
         <figure class="proof-view">
-          <button type="button" class="proof-view__img" title="Click to zoom" data-proof-zoom><img src="${src}" alt="Result proof for ${e(title)}"></button>
+          <button type="button" class="proof-view__img" title="Click to zoom" data-proof-zoom><img src="${src}" alt="Overview for ${e(title)}"></button>
           <figcaption class="proof-view__cap">
             <span>${ui.icon('shield-check', '')}<b>${e(title)}</b>${e(score)}</span>
             <a href="${src}" download="match-proof-${e(String(match.id).slice(0, 8))}.jpg" class="btn btn-ghost btn-xs">${ui.icon('download', '')}Download</a>
