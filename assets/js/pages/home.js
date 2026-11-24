@@ -229,7 +229,17 @@ EF.boot(async function homePage() {
     EF.registration.mountInline(el.joinPanel, t);
   }
 
+  let shownMatches = [];
+  // Overview button on Recent Results opens the result proof.
+  el.results.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-view-proof]');
+    if (!btn) return;
+    const match = shownMatches.find((m) => m.id === btn.dataset.viewProof);
+    if (match) ui.openProof(match);
+  });
+
   function renderMatches(d) {
+    shownMatches = d.matches;
     const upcoming = d.matches
       .filter((m) => m.status === 'live' || m.status === 'upcoming')
       .sort((a, b) => (a.status === 'live' ? -1 : 0) - (b.status === 'live' ? -1 : 0) || new Date(a.scheduled_at) - new Date(b.scheduled_at))

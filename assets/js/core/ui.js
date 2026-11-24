@@ -707,8 +707,13 @@
       ? `<div class="mcard__score${m.status === 'live' ? ' is-live' : ''}"><span class="${homeWin ? 'is-win' : ''}">${m.home_score}</span><i>:</i><span class="${awayWin ? 'is-win' : ''}">${m.away_score}</span></div>
          ${draw ? '<span class="draw-chip">Draw</span>' : `<p class="mcard__when">${e(done ? day : formatTime(m.scheduled_at))}</p>`}`
       : `<div class="mcard__vs">VS</div><p class="mcard__when">${ui.icon('clock', '')}${e(formatTime(m.scheduled_at))}</p>`;
+    // A div (not a link) so the Overview button can sit inside; a stretched link keeps the whole card clickable.
+    const overview = done && EF.utils.hasProof(m)
+      ? `<button type="button" class="proof-btn mcard__proof" data-view-proof="${e(m.id)}" aria-label="Overview: view result proof">${ui.icon('image', '')}Overview</button>`
+      : '';
     return `
-      <a href="fixtures.html" class="mcard mcard--${e(m.status)}" title="${e(home.player_name || 'TBD')} vs ${e(away.player_name || 'TBD')}">
+      <div class="mcard mcard--${e(m.status)}">
+        <a href="fixtures.html" class="mcard__link" aria-label="${e(home.player_name || 'TBD')} vs ${e(away.player_name || 'TBD')}: open fixtures"></a>
         <header class="mcard__head">
           <span class="mcard__round">${m.round ? `Round ${e(m.round)}` : 'Match'}${m.venue ? ` · ${e(m.venue)}` : ''}</span>
           ${status}
@@ -718,7 +723,8 @@
           <div class="mcard__mid">${mid}</div>
           ${side(away, awayWin, homeWin, 'away')}
         </div>
-      </a>`;
+        ${overview ? `<div class="mcard__foot">${overview}</div>` : ''}
+      </div>`;
   };
 
   EF.ui = ui;

@@ -1637,3 +1637,10 @@ a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
 .proof-view__img { width: 100%; padding: 0; overflow: auto; max-height: 72vh; }
 .proof-view__img.is-zoomed { cursor: zoom-out; }
 .proof-view__img.is-zoomed img { max-height: none; width: 200%; max-width: none; }
+/* Home match card: whole card links to fixtures; Overview button sits above the link. */
+.mcard:focus-within { border-color: rgba(var(--neon-rgb), 0.5); }
+.mcard__link { position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.mcard__link:focus-visible { outline: 2px solid var(--volt); outline-offset: -2px; }
+.mcard__head, .mcard__body { position: relative; pointer-events: none; }
+.mcard__foot { position: relative; z-index: 2; display: flex; justify-content: center; padding: 0 12px 12px; margin-top: -4px; }
+.mcard__proof { padding: 5px 14px; font-size: 12px; }
