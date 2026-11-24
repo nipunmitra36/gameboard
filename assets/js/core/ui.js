@@ -593,7 +593,7 @@
           <span class="inline-flex items-center gap-1.5">${ui.icon('calendar', 'w-3.5 h-3.5')}<span>${e(day)}</span></span>
           <span class="inline-flex items-center gap-1.5">${ui.icon('clock', 'w-3.5 h-3.5')}<span>${e(formatTime(m.scheduled_at))}</span></span>
           <span class="inline-flex items-center gap-1.5 ml-auto font-semibold ${resultTone}">${ui.icon('flag', 'w-3.5 h-3.5')}<span>${e(ui.matchResultText(m))}</span></span>
-          ${EF.utils.hasProof(m) ? `<button type="button" class="proof-btn" data-view-proof="${e(m.id)}">${ui.icon('image', '')}View proof</button>` : ''}
+          ${EF.utils.hasProof(m) ? `<button type="button" class="proof-btn" data-view-proof="${e(m.id)}" aria-label="Overview: view result proof">${ui.icon('image', '')}Overview</button>` : ''}
         </footer>
       </article>`;
   };

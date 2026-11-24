@@ -37,7 +37,7 @@
     }
     return `
       <div class="proof-box">
-        <button type="button" class="proof-box__view" data-proof-view title="View proof">${ui.icon('image', '')}<span><b>Proof attached</b><small>Click to view</small></span></button>
+        <button type="button" class="proof-box__view" data-proof-view title="Overview">${ui.icon('image', '')}<span><b>Proof attached</b><small>Click for overview</small></span></button>
         <label class="icon-btn icon-btn--sm cursor-pointer" title="Replace proof">${ui.icon('replace', '')}${input}</label>
         <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-proof-remove title="Remove proof" aria-label="Remove proof">${ui.icon('trash-2', '')}</button>
       </div>`;
