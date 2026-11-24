@@ -565,6 +565,7 @@
         <div class="min-w-0">
           <p class="font-display text-[17px] sm:text-lg font-bold leading-tight truncate ${winner ? 'text-gold' : 'text-white'}">${winner ? `<span class="min-[400px]:hidden">👑 </span>` : ''}${e(player ? player.player_name : 'TBD')}</p>
           <p class="text-xs text-muted truncate">${e(player ? player.team_name : '—')}</p>
+          ${player && player.efootball_username ? `<p class="match-user" title="eFootball username">${ui.icon('gamepad-2', '')}<span>${e(player.efootball_username)}</span></p>` : ''}
           ${winner ? ui.winChip() : ''}
         </div>
       </div>`;

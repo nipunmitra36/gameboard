@@ -1644,3 +1644,7 @@ a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
 .mcard__head, .mcard__body { position: relative; pointer-events: none; }
 .mcard__foot { position: relative; z-index: 2; display: flex; justify-content: center; padding: 0 12px 12px; margin-top: -4px; }
 .mcard__proof { padding: 5px 14px; font-size: 12px; }
+/* eFootball username on fixture cards */
+.match-user { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; margin-top: 3px; padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #8aa4ff; background: rgba(var(--volt-rgb), 0.12); border: 1px solid rgba(var(--volt-rgb), 0.25); }
+.match-user svg { width: 12px; height: 12px; flex-shrink: 0; }
+.match-user span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
