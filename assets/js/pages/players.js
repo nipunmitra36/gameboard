@@ -100,7 +100,7 @@ EF.boot(async function playersPage() {
               <p class="font-semibold text-white truncate">${e(p.player_name)}</p>
               <p class="text-xs text-muted truncate">${e(p.team_name)} · <span class="text-volt">${e(p.efootball_username)}</span></p>
             </div>
-            <span class="shrink-0">${ui.playerStatusBadge(p.status)}</span>
+            <span class="shrink-0 pl-badge" title="${e(p.status)}">${ui.playerStatusBadge(p.status)}</span>
           </li>`).join('')}
       </ul>`;
     ui.icons();

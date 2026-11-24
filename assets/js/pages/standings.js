@@ -16,7 +16,7 @@ EF.boot(async function standingsPage() {
       <div class="stat-tile ${tone}">
         <div class="stat-tile__icon">${ui.icon(icon, '')}</div>
         <p class="stat-tile__label !mt-0">${e(label)}</p>
-        <p class="font-display text-xl sm:text-2xl font-bold text-white mt-2 truncate pr-10">${e(value)}</p>
+        <p class="font-display text-xl sm:text-2xl font-bold text-white mt-2 clamp-2">${e(value)}</p>
         <p class="text-xs text-muted mt-1 truncate">${e(sub)}</p>
       </div>`;
   }

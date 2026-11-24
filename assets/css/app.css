@@ -1648,3 +1648,40 @@ a:hover > .ef-logo { filter: drop-shadow(0 0 12px rgba(var(--neon-rgb), 0.6)); }
 .match-user { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; margin-top: 3px; padding: 1px 7px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #8aa4ff; background: rgba(var(--volt-rgb), 0.12); border: 1px solid rgba(var(--volt-rgb), 0.25); }
 .match-user svg { width: 12px; height: 12px; flex-shrink: 0; }
 .match-user span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Responsive polish (phones / small tablets) ---------- */
+.clamp-2, .match-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.stat-tile__icon ~ .stat-tile__label { padding-right: 40px; }
+.day-head { flex-wrap: wrap; row-gap: 6px; line-height: 1.35; }
+.mcard__name { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .panel-title { font-size: 20px; gap: 8px; min-width: 0; }
+  .panel-title svg { width: 21px; height: 21px; flex-shrink: 0; }
+  .view-all { font-size: 13px; }
+  .day-head { font-size: 13px; letter-spacing: 0.1em; gap: 8px; }
+  .day-head::after { display: none; }
+  .stat-tile { padding: 14px; }
+  .stat-tile__label { font-size: 10.5px; letter-spacing: 0.06em; }
+  .top-row { gap: 10px; padding: 9px 10px 9px 8px; }
+  .top-row__pos { width: 28px; height: 28px; font-size: 15px; }
+  .top-row__dp .avatar { width: 38px; height: 38px; }
+  .top-row__line { gap: 3px 8px; }
+  .match-card .match-side { gap: 8px; }
+}
+@media (max-width: 420px) {
+  .mcard__body { padding: 12px 8px; gap: 6px; }
+  .mcard__mid { min-width: 52px; }
+  .mcard__name { font-size: 13.5px; }
+  .pl-badge .badge { padding-left: 7px; padding-right: 7px; }
+  .pl-badge .badge__text { display: none; }
+}
+@media (max-width: 640px) {
+  .ef-table thead th, .ef-table tbody td { padding-left: 8px; padding-right: 8px; }
+  .ef-table thead th:first-child, .ef-table tbody td:first-child { padding-left: 12px; }
+  .ef-table { font-size: 13px; }
+}
+@media (max-width: 420px) {
+  #player-summary .stat-tile { padding: 12px 10px; }
+  #player-summary .stat-tile__label { font-size: 9.5px; letter-spacing: 0.03em; }
+}
+@media (max-width: 640px) { .panel-title { white-space: nowrap; } }

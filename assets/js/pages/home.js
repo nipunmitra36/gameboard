@@ -169,7 +169,7 @@ EF.boot(async function homePage() {
     el.regChip.innerHTML = '';
     el.meta.innerHTML = '';
     el.slots.textContent = '';
-    el.playersTotal.textContent = 'Total: 0 Players';
+    el.playersTotal.innerHTML = '<span class="hidden sm:inline">Total: </span>0 Players';
     EF.registration.mountInline(el.joinPanel, null);
     el.upcoming.innerHTML = panelEmpty('calendar-clock', 'No fixtures yet', 'Fixtures appear once the tournament is published.');
     el.results.innerHTML = panelEmpty('flag', 'No results yet', 'Completed matches will show up here.');
@@ -267,7 +267,7 @@ EF.boot(async function homePage() {
   }
 
   function renderPlayers(d) {
-    el.playersTotal.textContent = `Total: ${EF.utils.plural(d.players.length, 'Player')}`;
+    el.playersTotal.innerHTML = `<span class="hidden sm:inline">Total: </span>${EF.utils.escapeHtml(EF.utils.plural(d.players.length, 'Player'))}`;
     clearPlayersCarousel();
     latestPlayers = [...d.players].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 

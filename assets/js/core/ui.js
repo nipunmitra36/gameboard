@@ -304,7 +304,7 @@
 
   ui.playerStatusBadge = (status) => {
     const s = PLAYER_STATUS[status] || PLAYER_STATUS.pending;
-    return `<span class="badge ${s.cls}">${ui.icon(s.icon, '')}${s.label}</span>`;
+    return `<span class="badge ${s.cls}">${ui.icon(s.icon, '')}<span class="badge__text">${s.label}</span></span>`;
   };
 
   /** Player avatar: their uploaded photo (DP) when present, otherwise coloured initials. Accepts a player object or a name. */
@@ -563,7 +563,7 @@
       <div class="match-side flex items-center gap-3 min-w-0 ${alignRight ? 'flex-row-reverse text-right' : ''}${winner ? ' is-win' : ''}${loser ? ' is-lose' : ''}">
         <span class="hidden min-[400px]:inline-flex">${ui.winnerAvatar(player || 'TBD', 'md', { win: winner, lose: loser })}</span>
         <div class="min-w-0">
-          <p class="font-display text-[17px] sm:text-lg font-bold leading-tight truncate ${winner ? 'text-gold' : 'text-white'}">${winner ? `<span class="min-[400px]:hidden">👑 </span>` : ''}${e(player ? player.player_name : 'TBD')}</p>
+          <p class="font-display text-[17px] sm:text-lg font-bold leading-tight match-name ${winner ? 'text-gold' : 'text-white'}">${winner ? `<span class="min-[400px]:hidden">👑 </span>` : ''}${e(player ? player.player_name : 'TBD')}</p>
           <p class="text-xs text-muted truncate">${e(player ? player.team_name : '—')}</p>
           ${player && player.efootball_username ? `<p class="match-user" title="eFootball username">${ui.icon('gamepad-2', '')}<span>${e(player.efootball_username)}</span></p>` : ''}
           ${winner ? ui.winChip() : ''}
@@ -655,11 +655,11 @@
               <tr class="${r.position <= 3 && r.played > 0 ? 'is-top' : ''} ${r.position === 1 && r.played > 0 ? 'is-leader' : ''}">
                 <td class="num"><span class="pos-chip ${r.played > 0 && r.position <= 3 ? `pos-${r.position}` : ''}">${r.position}</span></td>
                 <td>
-                  <div class="flex items-center gap-3 min-w-[170px]">
+                  <div class="flex items-center gap-2 sm:gap-3 min-w-[140px] sm:min-w-[170px]">
                     ${ui.avatar(r.player, 'sm')}
                     <div class="min-w-0">
-                      <p class="font-semibold text-white truncate max-w-[220px]">${e(r.player.player_name)}</p>
-                      <p class="text-xs text-muted truncate max-w-[220px]">${e(r.player.team_name)}</p>
+                      <p class="font-semibold text-white truncate max-w-[120px] sm:max-w-[220px]">${e(r.player.player_name)}</p>
+                      <p class="text-xs text-muted truncate max-w-[120px] sm:max-w-[220px]">${e(r.player.team_name)}</p>
                     </div>
                   </div>
                 </td>
