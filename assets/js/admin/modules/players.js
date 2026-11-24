@@ -6,7 +6,7 @@
   const admin = EF.admin;
   const api = EF.api;
 
-  const view = { q: '', status: 'all' };
+  const view = { q: '', status: 'all', selected: new Set() };
 
   /** Shared add/edit player dialog (also used by the Registrations module). */
   admin.openPlayerForm = function (player = null) {
@@ -83,6 +83,43 @@
     if (ok) await admin.mutate(() => api.admin.deletePlayer(player.id), { success: 'Player deleted.' });
   };
 
+  /** Bulk delete with a typed confirmation. Players with fixtures need those fixtures removed too. */
+  admin.bulkDeletePlayers = async function (players) {
+    if (!players.length) return false;
+    const fixturesOf = (p) => admin.state.matches.filter((m) => m.home_player_id === p.id || m.away_player_id === p.id);
+    const withFixtures = players.filter((p) => fixturesOf(p).length);
+    const fixtureIds = [...new Set(withFixtures.flatMap((p) => fixturesOf(p).map((m) => m.id)))];
+    const completed = admin.state.matches.filter((m) => fixtureIds.includes(m.id) && m.status === 'completed').length;
+
+    const values = await ui.confirmTyped({
+      title: `Delete ${EF.utils.plural(players.length, 'player')}?`,
+      message: 'This permanently removes the selected players and their point adjustments. It cannot be undone.',
+      details: ui.whoList(players),
+      extra: withFixtures.length ? `
+        <label class="danger-option">
+          <input type="checkbox" name="with_fixtures">
+          <span><b>Also delete their ${EF.utils.plural(fixtureIds.length, 'fixture')}</b>
+          ${completed ? ` (${completed} with results, which will disappear from the point table)` : ''}.
+          If left unticked, the ${EF.utils.plural(withFixtures.length, 'player')} who ${withFixtures.length === 1 ? 'has' : 'have'} fixtures will be kept.</span>
+        </label>` : '',
+      confirmText: 'Delete players',
+    });
+    if (!values) return false;
+
+    const deleteFixtures = Boolean(values.with_fixtures);
+    const targets = deleteFixtures ? players : players.filter((p) => !fixturesOf(p).length);
+    if (!targets.length) {
+      ui.toast('Nothing was deleted: every selected player has fixtures. Tick "Also delete their fixtures" to remove them.', 'warning', { timeout: 7000 });
+      return false;
+    }
+    const kept = players.length - targets.length;
+    const ok = await admin.mutate(async () => {
+      if (deleteFixtures && fixtureIds.length) await api.admin.deleteMatches(fixtureIds);
+      await api.admin.deletePlayers(targets.map((p) => p.id));
+    }, { success: `${EF.utils.plural(targets.length, 'player')} deleted${deleteFixtures && fixtureIds.length ? ` with ${EF.utils.plural(fixtureIds.length, 'fixture')}` : ''}.${kept ? ` ${kept} kept because they have fixtures.` : ''}` });
+    return ok;
+  };
+
   admin.register('players', {
     title: 'Player Management',
 
@@ -106,10 +143,31 @@
             </div>
             <button type="button" class="btn btn-primary btn-sm lg:ml-auto" data-add>${ui.icon('user-plus', '')}Add player</button>
           </div>
+          <div data-bulk-slot></div>
           <div data-list></div>
         </section>`;
 
       const list = el.querySelector('[data-list]');
+      const bulkSlot = el.querySelector('[data-bulk-slot]');
+      // Drop selections for players that no longer exist.
+      view.selected = new Set([...view.selected].filter((id) => admin.playerById(id)));
+      let visibleIds = [];
+
+      const drawBulk = () => {
+        const n = view.selected.size;
+        bulkSlot.innerHTML = admin.bulkBar(n, `
+          <button type="button" class="btn btn-secondary btn-xs" data-bulk="approved">${ui.icon('check', '')}Approve</button>
+          <button type="button" class="btn btn-ghost btn-xs" data-bulk="rejected">${ui.icon('ban', '')}Reject</button>
+          <button type="button" class="btn btn-danger btn-xs" data-bulk="delete">${ui.icon('trash-2', '')}Delete</button>`);
+        const all = list.querySelector('[data-select-all]');
+        if (all) {
+          const picked = visibleIds.filter((id) => view.selected.has(id)).length;
+          all.checked = picked > 0 && picked === visibleIds.length;
+          all.indeterminate = picked > 0 && picked < visibleIds.length;
+        }
+        list.querySelectorAll('tr[data-row]').forEach((tr) => tr.classList.toggle('is-selected', view.selected.has(tr.dataset.row)));
+        ui.icons();
+      };
 
       const draw = () => {
         const q = view.q.trim().toLowerCase();
@@ -117,6 +175,7 @@
           .map((p, i) => ({ ...p, position: i + 1 }))
           .filter((p) => (view.status === 'all' || p.status === view.status)
             && (!q || [p.player_name, p.team_name, p.efootball_username, p.email].some((v) => String(v).toLowerCase().includes(q))));
+        visibleIds = rows.map((p) => p.id);
 
         if (!s.players.length) {
           list.innerHTML = ui.state.empty({ icon: 'users', title: 'No players yet', message: 'Players appear here when they register on the website, or you can add them manually.', action: '<button type="button" class="btn btn-primary btn-sm" data-add>Add player</button>' });
@@ -127,14 +186,14 @@
             <div class="table-wrap">
               <table class="ef-table">
                 <thead><tr>
-                  <th class="num">#</th><th>Player</th><th>Team</th><th>eFootball Username</th><th>Email</th><th>Status</th><th>Registered</th><th class="actions">Actions</th>
+                  <th class="check-col">${admin.check('data-select-all', false, 'Select all shown players')}</th><th class="num">#</th><th>Player</th><th>eFootball Username</th><th>Email</th><th>Status</th><th>Registered</th><th class="actions">Actions</th>
                 </tr></thead>
                 <tbody>
                   ${rows.map((p) => `
-                    <tr>
+                    <tr data-row="${e(p.id)}">
+                      <td class="check-col">${admin.check(`data-select="${e(p.id)}"`, view.selected.has(p.id), `Select ${p.player_name}`)}</td>
                       <td class="num text-muted">${p.position}</td>
-                      <td><div class="flex items-center gap-3">${ui.avatar(p, 'sm')}<span class="font-semibold text-white">${e(p.player_name)}</span>${p.notes ? `<span class="text-subtle" title="${e(p.notes)}">${ui.icon('sticky-note', 'w-3.5 h-3.5')}</span>` : ''}</div></td>
-                      <td>${e(p.team_name)}</td>
+                      <td><div class="admin-player">${ui.avatar(p, 'md')}<div class="min-w-0"><p class="admin-player__name">${e(p.player_name)}${p.notes ? `<span class="text-subtle ml-1.5" title="${e(p.notes)}">${ui.icon('sticky-note', 'w-3.5 h-3.5 inline')}</span>` : ''}</p><p class="admin-player__sub">${e(p.team_name)}</p></div></div></td>
                       <td class="text-volt font-mono text-[13px]">${e(p.efootball_username)}</td>
                       <td><a class="hover:text-white" href="mailto:${e(p.email)}">${e(p.email)}</a></td>
                       <td>${ui.playerStatusBadge(p.status)}</td>
@@ -152,10 +211,24 @@
             </div>
             <p class="px-5 py-3 text-xs text-muted border-t border-white/5">Showing ${rows.length} of ${EF.utils.plural(s.players.length, 'player')}</p>`;
         }
-        ui.icons();
+        drawBulk();
       };
 
       draw();
+
+      el.addEventListener('change', (ev) => {
+        const one = ev.target.closest('[data-select]');
+        if (one) {
+          if (one.checked) view.selected.add(one.dataset.select); else view.selected.delete(one.dataset.select);
+          drawBulk();
+          return;
+        }
+        if (ev.target.closest('[data-select-all]')) {
+          visibleIds.forEach((id) => (ev.target.checked ? view.selected.add(id) : view.selected.delete(id)));
+          list.querySelectorAll('[data-select]').forEach((c) => { c.checked = ev.target.checked; });
+          drawBulk();
+        }
+      });
 
       el.querySelector('#admin-player-search').addEventListener('input', debounce((ev) => { view.q = ev.target.value; draw(); }, 150));
       el.addEventListener('click', async (ev) => {
@@ -168,6 +241,20 @@
             b.setAttribute('aria-selected', String(b === filter));
           });
           draw();
+          return;
+        }
+        const bulk = t.closest('[data-bulk]');
+        if (bulk) {
+          const action = bulk.dataset.bulk;
+          const picked = [...view.selected].map((id) => admin.playerById(id)).filter(Boolean);
+          if (action === 'clear') { view.selected.clear(); draw(); return; }
+          if (action === 'delete') {
+            if (await admin.bulkDeletePlayers(picked)) view.selected.clear();
+            return;
+          }
+          const label = action === 'approved' ? 'approved' : 'rejected';
+          const ok = await admin.mutate(() => api.admin.setPlayerStatus(picked.map((p) => p.id), action), { success: `${EF.utils.plural(picked.length, 'player')} ${label}.`, button: bulk, label: '' });
+          if (ok) view.selected.clear();
           return;
         }
         if (t.closest('[data-add]')) { admin.openPlayerForm(); return; }

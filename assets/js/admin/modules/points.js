@@ -52,7 +52,7 @@
                   ${s.adjustments.map((a) => `
                     <tr>
                       <td class="text-muted text-[13px]">${e(formatDateTime(a.created_at))}</td>
-                      <td class="font-semibold text-white">${e(nameOf(a.player_id))}</td>
+                      <td><div class="admin-player">${ui.avatar(admin.playerById(a.player_id) || nameOf(a.player_id), 'sm')}<span class="admin-player__name">${e(nameOf(a.player_id))}</span></div></td>
                       <td class="num"><span class="font-display text-lg font-bold ${a.points > 0 ? 'text-neon' : 'text-danger'}">${signed(a.points)}</span></td>
                       <td class="!whitespace-normal min-w-[240px] max-w-[420px]">${e(a.reason)}</td>
                       <td class="text-muted text-[13px]">${e(a.created_by_email || 'System')}</td>

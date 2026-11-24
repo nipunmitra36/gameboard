@@ -191,6 +191,61 @@
     });
   };
 
+  /**
+   * Destructive confirmation: the button stays disabled until the user types `word`.
+   * `details` and `extra` are trusted HTML built by the caller (escape user data first).
+   * Resolves to null when cancelled, otherwise to the values of any inputs in `extra`.
+   */
+  ui.confirmTyped = function ({ title = 'Delete permanently?', message = '', details = '', extra = '', word = 'delete', confirmText = 'Delete' } = {}) {
+    return new Promise((resolve) => {
+      let result = null;
+      const m = ui.modal({
+        title,
+        size: 'sm',
+        onClose: () => resolve(result),
+        body: `
+          <form class="grid gap-4" data-typed novalidate>
+            <div class="danger-note">${ui.icon('triangle-alert', '')}<p>${e(message)}</p></div>
+            ${details}
+            ${extra}
+            <div class="field">
+              <label class="label" for="typed-confirm">Type <code class="typed-word">${e(word)}</code> to confirm</label>
+              <input id="typed-confirm" class="input" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${e(word)}" data-typed-input>
+            </div>
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+              <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+              <button type="submit" class="btn btn-danger" data-confirm disabled>${ui.icon('trash-2', '')}${e(confirmText)}</button>
+            </div>
+          </form>`,
+      });
+      const form = m.body.querySelector('[data-typed]');
+      const input = form.querySelector('[data-typed-input]');
+      const button = form.querySelector('[data-confirm]');
+      const matches = () => input.value.trim().toLowerCase() === word.toLowerCase();
+      input.addEventListener('input', () => {
+        button.disabled = !matches();
+        input.classList.toggle('is-match', matches());
+      });
+      form.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        if (!matches()) return;
+        const values = {};
+        form.querySelectorAll('input[name]').forEach((el) => { values[el.name] = el.type === 'checkbox' ? el.checked : el.value; });
+        result = values;
+        m.close();
+      });
+      ui.icons();
+      setTimeout(() => input.focus(), 50);
+    });
+  };
+
+  /** Small avatar stack + names, used inside delete confirmations. */
+  ui.whoList = (people, max = 6) => `
+    <div class="who-list">
+      ${people.slice(0, max).map((p) => `<span class="who-list__item">${ui.avatar(p, 'sm')}<span>${e(p.player_name)}</span></span>`).join('')}
+      ${people.length > max ? `<span class="who-list__more">+${people.length - max} more</span>` : ''}
+    </div>`;
+
   /* ---------------- Loading / empty / error states ---------------- */
   ui.state = {
     loading(label = 'Loading') {

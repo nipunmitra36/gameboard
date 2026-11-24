@@ -32,12 +32,14 @@
               </div>
               ${view.tab === 'pending' && groups.pending.length > 1
                 ? `<button type="button" class="btn btn-primary btn-sm sm:ml-auto" data-approve-all>${ui.icon('check-check', '')}Approve all (${groups.pending.length})</button>` : ''}
+              ${view.tab === 'rejected' && groups.rejected.length
+                ? `<button type="button" class="btn btn-danger btn-sm sm:ml-auto" data-delete-rejected>${ui.icon('trash-2', '')}Delete all rejected (${groups.rejected.length})</button>` : ''}
             </div>
             <div class="p-3 sm:p-4">
               ${list.length ? `<ul class="grid gap-3">${list.map((p) => `
-                <li class="rounded-2xl border border-white/5 bg-black/20 p-4 flex flex-col md:flex-row md:items-center gap-4">
-                  <div class="flex items-center gap-3 min-w-0 flex-1">
-                    ${ui.avatar(p)}
+                <li class="reg-card reg-card--${e(p.status)}">
+                  <div class="flex items-center gap-4 min-w-0 flex-1">
+                    ${ui.avatar(p, 'lg')}
                     <div class="min-w-0">
                       <p class="font-semibold text-white truncate">${e(p.player_name)} <span class="text-muted font-normal">· ${e(p.team_name)}</span></p>
                       <p class="text-xs text-muted truncate mt-0.5">
@@ -91,6 +93,8 @@
 
         const edit = ev.target.closest('[data-edit]');
         if (edit) { admin.openPlayerForm(admin.playerById(edit.dataset.edit)); return; }
+
+        if (ev.target.closest('[data-delete-rejected]')) { await admin.bulkDeletePlayers(groups.rejected); return; }
 
         const all = ev.target.closest('[data-approve-all]');
         if (all) {

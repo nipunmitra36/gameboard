@@ -6,7 +6,7 @@
   const admin = EF.admin;
   const api = EF.api;
 
-  const view = { status: 'all', q: '' };
+  const view = { status: 'all', q: '', selected: new Set() };
 
   const STATUS_OPTIONS = [
     { value: 'upcoming', label: 'Upcoming' },
@@ -466,6 +466,21 @@
     });
   };
 
+  admin.bulkDeleteFixtures = async function (matches) {
+    if (!matches.length) return false;
+    const completed = matches.filter((m) => m.status === 'completed').length;
+    const values = await ui.confirmTyped({
+      title: `Delete ${EF.utils.plural(matches.length, 'fixture')}?`,
+      message: `The selected fixtures will be permanently removed${completed ? `, including ${EF.utils.plural(completed, 'completed result')} that will no longer count in the point table` : ''}. This cannot be undone.`,
+      details: `<div class="who-list who-list--matches">${matches.slice(0, 5).map((m) => `
+        <span class="who-list__item">${ui.avatar(m.home || '?', 'sm')}<span>${e(m.home ? m.home.player_name : 'TBD')} <b class="text-neon">vs</b> ${e(m.away ? m.away.player_name : 'TBD')}</span></span>`).join('')}
+        ${matches.length > 5 ? `<span class="who-list__more">+${matches.length - 5} more</span>` : ''}</div>`,
+      confirmText: 'Delete fixtures',
+    });
+    if (!values) return false;
+    return admin.mutate(() => api.admin.deleteMatches(matches.map((m) => m.id)), { success: `${EF.utils.plural(matches.length, 'fixture')} deleted.` });
+  };
+
   admin.deleteFixture = async function (match) {
     const ok = await ui.confirm({
       title: 'Delete fixture?',
@@ -495,14 +510,32 @@
             </div>
             <button type="button" class="btn btn-primary btn-sm lg:ml-auto" data-choose ${approvedCount < 2 ? 'disabled' : ''}>${ui.icon('calendar-plus', '')}Create fixtures</button>
           </div>
+          <div data-bulk-slot></div>
           <div data-list></div>
         </section>`;
 
       const list = el.querySelector('[data-list]');
+      const bulkSlot = el.querySelector('[data-bulk-slot]');
+      const byId = (id) => s.matches.find((m) => m.id === id);
+      view.selected = new Set([...view.selected].filter(byId));
+      let visibleIds = [];
+      const drawBulk = () => {
+        bulkSlot.innerHTML = admin.bulkBar(view.selected.size, `
+          <button type="button" class="btn btn-danger btn-xs" data-bulk="delete">${ui.icon('trash-2', '')}Delete</button>`);
+        const all = list.querySelector('[data-select-all]');
+        if (all) {
+          const picked = visibleIds.filter((id) => view.selected.has(id)).length;
+          all.checked = picked > 0 && picked === visibleIds.length;
+          all.indeterminate = picked > 0 && picked < visibleIds.length;
+        }
+        list.querySelectorAll('tr[data-row]').forEach((tr) => tr.classList.toggle('is-selected', view.selected.has(tr.dataset.row)));
+        ui.icons();
+      };
       const draw = () => {
         const q = view.q.trim().toLowerCase();
         const rows = s.matches.filter((m) => (view.status === 'all' || m.status === view.status)
           && (!q || [m.home, m.away].some((p) => p && `${p.player_name} ${p.team_name}`.toLowerCase().includes(q))));
+        visibleIds = rows.map((m) => m.id);
 
         if (!s.matches.length) {
           list.innerHTML = ui.state.empty({ icon: 'calendar-plus', title: 'No fixtures yet', message: 'Create your first match by selecting two approved players.', action: approvedCount >= 2 ? `<div class="flex flex-wrap justify-center gap-2"><button type="button" class="btn btn-primary btn-sm" data-generate>${ui.icon('wand-sparkles', '')}Generate automatically</button><button type="button" class="btn btn-ghost btn-sm" data-add>Add one manually</button></div>` : '' });
@@ -512,18 +545,19 @@
           list.innerHTML = `
             <div class="table-wrap">
               <table class="ef-table">
-                <thead><tr><th class="num">Rd</th><th>Date</th><th>Time</th><th>Player 1</th><th class="num">Result</th><th>Player 2</th><th>Status</th><th class="actions">Actions</th></tr></thead>
+                <thead><tr><th class="check-col">${admin.check('data-select-all', false, 'Select all shown fixtures')}</th><th class="num">Rd</th><th>Date</th><th>Time</th><th>Player 1</th><th class="num">Result</th><th>Player 2</th><th>Status</th><th class="actions">Actions</th></tr></thead>
                 <tbody>
                   ${rows.map((m) => {
                     const scored = Number.isInteger(m.home_score) && Number.isInteger(m.away_score);
                     return `
-                      <tr>
+                      <tr data-row="${e(m.id)}">
+                        <td class="check-col">${admin.check(`data-select="${e(m.id)}"`, view.selected.has(m.id), 'Select fixture')}</td>
                         <td class="num text-muted">${m.round ? e(m.round) : '—'}</td>
                         <td>${e(formatDate(m.scheduled_at, { weekday: 'short', day: '2-digit', month: 'short' }))}</td>
                         <td class="font-semibold text-white">${e(formatTime(m.scheduled_at))}</td>
-                        <td><span class="font-semibold text-white">${e(m.home ? m.home.player_name : 'Unknown')}</span><span class="block text-xs text-muted">${e(m.home ? m.home.team_name : '')}</span></td>
+                        <td><div class="admin-player">${ui.avatar(m.home || '?', 'sm')}<div class="min-w-0"><p class="admin-player__name">${e(m.home ? m.home.player_name : 'Unknown')}</p><p class="admin-player__sub">${e(m.home ? m.home.team_name : '')}</p></div></div></td>
                         <td class="num"><span class="font-display text-lg font-bold ${scored ? 'text-white' : 'text-subtle'}">${scored ? `${m.home_score} : ${m.away_score}` : '– : –'}</span></td>
-                        <td><span class="font-semibold text-white">${e(m.away ? m.away.player_name : 'Unknown')}</span><span class="block text-xs text-muted">${e(m.away ? m.away.team_name : '')}</span></td>
+                        <td><div class="admin-player">${ui.avatar(m.away || '?', 'sm')}<div class="min-w-0"><p class="admin-player__name">${e(m.away ? m.away.player_name : 'Unknown')}</p><p class="admin-player__sub">${e(m.away ? m.away.team_name : '')}</p></div></div></td>
                         <td>${ui.matchStatusBadge(m.status)}</td>
                         <td class="actions">
                           <div class="inline-flex gap-1.5">
@@ -538,12 +572,33 @@
             </div>
             <p class="px-5 py-3 text-xs text-muted border-t border-white/5">Times shown in your local time zone (${e(Intl.DateTimeFormat().resolvedOptions().timeZone || 'local')}).</p>`;
         }
-        ui.icons();
+        drawBulk();
       };
       draw();
 
+      el.addEventListener('change', (ev) => {
+        const one = ev.target.closest('[data-select]');
+        if (one) {
+          if (one.checked) view.selected.add(one.dataset.select); else view.selected.delete(one.dataset.select);
+          drawBulk();
+          return;
+        }
+        if (ev.target.closest('[data-select-all]')) {
+          visibleIds.forEach((id) => (ev.target.checked ? view.selected.add(id) : view.selected.delete(id)));
+          list.querySelectorAll('[data-select]').forEach((c) => { c.checked = ev.target.checked; });
+          drawBulk();
+        }
+      });
+
       el.querySelector('#admin-fixture-search').addEventListener('input', EF.utils.debounce((ev) => { view.q = ev.target.value; draw(); }, 150));
-      el.addEventListener('click', (ev) => {
+      el.addEventListener('click', async (ev) => {
+        const bulk = ev.target.closest('[data-bulk]');
+        if (bulk) {
+          if (bulk.dataset.bulk === 'clear') { view.selected.clear(); draw(); return; }
+          const picked = [...view.selected].map(byId).filter(Boolean);
+          if (await admin.bulkDeleteFixtures(picked)) view.selected.clear();
+          return;
+        }
         const filter = ev.target.closest('[data-filter]');
         if (filter) {
           view.status = filter.dataset.filter;

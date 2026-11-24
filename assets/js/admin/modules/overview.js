@@ -56,7 +56,7 @@
                   <p class="text-[11px] text-muted">${e(relativeDay(m.scheduled_at) || formatDate(m.scheduled_at, { day: '2-digit', month: 'short' }))}</p>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="font-semibold text-white truncate">${e(m.home ? m.home.player_name : 'TBD')} <span class="text-volt font-display mx-1">vs</span> ${e(m.away ? m.away.player_name : 'TBD')}</p>
+                  <p class="font-semibold text-white truncate flex items-center gap-2"><span class="avatar-pair">${ui.avatar(m.home || 'TBD', 'sm')}${ui.avatar(m.away || 'TBD', 'sm')}</span><span class="truncate">${e(m.home ? m.home.player_name : 'TBD')} <span class="text-volt font-display mx-1">vs</span> ${e(m.away ? m.away.player_name : 'TBD')}</span></p>
                   <p class="text-xs text-muted truncate">${m.round ? `Round ${e(m.round)}` : 'Fixture'}${m.venue ? ` · ${e(m.venue)}` : ''}</p>
                 </div>
                 ${ui.matchStatusBadge(m.status)}

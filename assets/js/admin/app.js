@@ -85,6 +85,19 @@
       ${actions ? `<div class="flex flex-wrap gap-2 shrink-0">${actions}</div>` : ''}
     </div>`;
 
+  /** Checkbox used for row selection in admin tables. */
+  admin.check = (attrs, checked = false, label = 'Select') => `
+    <label class="ef-check"><input type="checkbox" ${attrs} ${checked ? 'checked' : ''} aria-label="${e(label)}"><span></span></label>`;
+
+  /** Sticky bar shown while rows are selected. `actions` is trusted HTML. */
+  admin.bulkBar = (count, actions) => (count ? `
+    <div class="bulk-bar" role="region" aria-label="Bulk actions">
+      <span class="bulk-bar__count"><b>${count}</b> selected</span>
+      <div class="bulk-bar__actions">${actions}
+        <button type="button" class="btn btn-ghost btn-xs" data-bulk="clear">${ui.icon('x', '')}Clear</button>
+      </div>
+    </div>` : '');
+
   admin.searchInput = (id, placeholder, value = '') => `
     <div class="relative flex-1 min-w-[200px]">
       <span class="input-icon">${ui.icon('search', '')}</span>

@@ -345,6 +345,11 @@
       return run(db().from('players').delete().eq('id', id));
     },
 
+    async deletePlayers(ids) {
+      if (!ids.length) return null;
+      return run(db().from('players').delete().in('id', ids));
+    },
+
     async createMatch(tournamentId, values) {
       return run(db().from('matches').insert({ ...values, tournament_id: tournamentId }).select(MATCH_COLUMNS).single());
     },
@@ -355,6 +360,11 @@
 
     async deleteMatch(id) {
       return run(db().from('matches').delete().eq('id', id));
+    },
+
+    async deleteMatches(ids) {
+      if (!ids.length) return null;
+      return run(db().from('matches').delete().in('id', ids));
     },
 
     async listAdjustments(tournamentId) {
