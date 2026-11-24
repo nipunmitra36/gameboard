@@ -20,7 +20,11 @@
       points_win: [r.intRange('Win points', 0, 10, { optional: false })],
       points_draw: [r.intRange('Draw points', 0, 10, { optional: false })],
       points_loss: [r.intRange('Loss points', 0, 10, { optional: false })],
-      end_date: [r.custom((v, all) => !v || !all.start_date || v >= all.start_date, 'End date must be on or after the start date.')],
+      start_date: [r.custom((v) => !v || Boolean(EF.utils.fromDateTimeInput(v)), 'Enter a valid start date and time.')],
+      end_date: [
+        r.custom((v) => !v || Boolean(EF.utils.fromDateTimeInput(v)), 'Enter a valid end date and time.'),
+        r.custom((v, all) => !v || !all.start_date || new Date(v) >= new Date(all.start_date), 'End must be on or after the start.'),
+      ],
     });
     return {
       errors,
@@ -31,8 +35,8 @@
         format: values.format || 'League',
         platform: nullable(values.platform),
         prize: nullable(values.prize),
-        start_date: nullable(values.start_date),
-        end_date: nullable(values.end_date),
+        start_date: EF.utils.fromDateTimeInput(values.start_date),
+        end_date: EF.utils.fromDateTimeInput(values.end_date),
         max_players: toInt(values.max_players),
         points_win: toInt(values.points_win),
         points_draw: toInt(values.points_draw),
@@ -71,9 +75,9 @@
                   ${ui.field({ name: 'platform', label: 'Platform', value: v.platform, maxlength: 80, placeholder: 'e.g. PS5 · Xbox · PC' })}
                   ${ui.field({ name: 'prize', label: 'Total Prize', value: v.prize, maxlength: 60, placeholder: 'e.g. ৳50,000' })}
                 </div>
-                <div class="grid sm:grid-cols-3 gap-4">
-                  ${ui.field({ name: 'start_date', label: 'Start Date', type: 'date', value: v.start_date })}
-                  ${ui.field({ name: 'end_date', label: 'End Date', type: 'date', value: v.end_date })}
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  ${ui.field({ name: 'start_date', label: 'Start Date & Time', type: 'datetime-local', value: EF.utils.toDateTimeInput(v.start_date), hint: 'Your local time · drives the home page countdown' })}
+                  ${ui.field({ name: 'end_date', label: 'End Date & Time', type: 'datetime-local', value: EF.utils.toDateTimeInput(v.end_date), hint: 'Your local time' })}
                   ${ui.field({ name: 'max_players', label: 'Max Players', type: 'number', min: 2, max: 1024, value: v.max_players ?? '', placeholder: 'Unlimited' })}
                 </div>
               </div>

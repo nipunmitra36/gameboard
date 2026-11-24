@@ -96,6 +96,32 @@
       return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     },
 
+    /**
+     * Tournament start/end as a Date. Accepts full timestamps and the older
+     * date-only values ("2026-12-01"), which mean local midnight.
+     */
+    parseEventDate(value) {
+      if (!value) return null;
+      const s = String(value);
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T00:00:00`) : new Date(s);
+      return Number.isNaN(d.getTime()) ? null : d;
+    },
+
+    /** Value for <input type="datetime-local"> in the viewer's time zone. */
+    toDateTimeInput(value) {
+      const d = utils.parseEventDate(value);
+      if (!d) return '';
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    },
+
+    /** <input type="datetime-local"> value (local time) to an ISO timestamp, or null. */
+    fromDateTimeInput(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    },
+
     /** Combine local date + time inputs into an ISO timestamp (UTC). */
     combineDateTime(date, time) {
       if (!date) return null;

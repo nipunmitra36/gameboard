@@ -465,7 +465,7 @@
         name: 'eFootball Champions Cup', season: 'Season 1', is_active: true, is_published: true,
         description: 'Eight of the sharpest eFootball players battle across a full league season for the title.',
         platform: 'PS5 · Xbox · PC · Mobile', prize: '৳50,000', max_players: 16,
-        start_date: new Date().toISOString().slice(0, 10),
+        start_date: new Date().toISOString(),
         rules: 'Matches are 10 minutes on Normal speed.\nSend a screenshot of the final score to the admin.\nNo-shows after 15 minutes forfeit 3-0.\nDisconnections: replay the remaining time with the same score.',
       };
       data.tournaments.push(t);

@@ -41,7 +41,7 @@ EF.boot(async function homePage() {
     if (countdownInterval) window.clearInterval(countdownInterval);
     countdownInterval = null;
 
-    const target = startDate ? new Date(`${startDate}T00:00:00`) : null;
+    const target = EF.utils.parseEventDate(startDate);
     if (!target || Number.isNaN(target.getTime())) {
       el.countdown.hidden = true;
       el.countdown.innerHTML = '';
@@ -200,10 +200,13 @@ EF.boot(async function homePage() {
 
     const next = d.matches.find((m) => m.status === 'live')
       || d.matches.find((m) => m.status === 'upcoming' && new Date(m.scheduled_at) >= Date.now() - 3 * 3600 * 1000);
-    const startDate = t.start_date ? new Date(`${t.start_date}T00:00`) : (next ? next.scheduled_at : null);
+    const startDate = EF.utils.parseEventDate(t.start_date) || (next ? new Date(next.scheduled_at) : null);
+    const endDate = EF.utils.parseEventDate(t.end_date);
+    const showTime = (d) => (d.getHours() || d.getMinutes() ? `, ${formatTime(d)}` : '');
 
     const items = [];
-    if (startDate) items.push(['calendar-days', 'Start Date', formatDate(startDate, { day: '2-digit', month: 'short', year: 'numeric' })]);
+    if (startDate) items.push(['calendar-days', 'Start Date', `${formatDate(startDate, { day: '2-digit', month: 'short', year: 'numeric' })}${t.start_date ? showTime(startDate) : ''}`]);
+    if (endDate && (!startDate || endDate > startDate)) items.push(['flag', 'End Date', `${formatDate(endDate, { day: '2-digit', month: 'short', year: 'numeric' })}${showTime(endDate)}`]);
     if (next) items.push(['clock', next.status === 'live' ? 'Live Now' : 'Next Kickoff', formatTime(next.scheduled_at)]);
     if (t.prize) items.push(['trophy', 'Total Prize', t.prize]);
     else items.push(['users', 'Players', `${d.players.length}${t.max_players ? ` / ${t.max_players}` : ''}`]);

@@ -55,8 +55,8 @@ create table if not exists public.tournaments (
   format            text not null default 'League' check (char_length(format) <= 60),
   platform          text check (platform is null or char_length(platform) <= 80),
   prize             text check (prize is null or char_length(prize) <= 60),
-  start_date        date,
-  end_date          date,
+  start_date        timestamptz,
+  end_date          timestamptz,
   max_players       integer check (max_players is null or max_players between 2 and 1024),
   registration_open boolean not null default true,
   auto_approve      boolean not null default false,
@@ -72,6 +72,20 @@ create table if not exists public.tournaments (
 
 -- Columns added after the first release (safe on existing databases).
 alter table public.tournaments add column if not exists prize text;
+
+-- Start / end now include a time. Older databases stored a date only: convert
+-- those to midnight Bangladesh time (Asia/Dhaka). Runs once; safe to re-run.
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'tournaments'
+                and column_name = 'start_date' and data_type = 'date') then
+    alter table public.tournaments
+      alter column start_date type timestamptz using (start_date::timestamp at time zone 'Asia/Dhaka'),
+      alter column end_date   type timestamptz using (end_date::timestamp at time zone 'Asia/Dhaka');
+  end if;
+end;
+$$;
 
 -- Only one tournament can be the active one at any time.
 create unique index if not exists tournaments_single_active_idx
@@ -685,7 +699,7 @@ begin
          is_published, is_active, created_at, updated_at
     from jsonb_to_recordset(p_backup -> 'tournaments') as t(
       id uuid, name text, season text, description text, rules text, format text, platform text,
-      prize text, start_date date, end_date date, max_players integer, registration_open boolean,
+      prize text, start_date timestamptz, end_date timestamptz, max_players integer, registration_open boolean,
       auto_approve boolean, points_win smallint, points_draw smallint, points_loss smallint,
       is_published boolean, is_active boolean, created_at timestamptz, updated_at timestamptz
     );
