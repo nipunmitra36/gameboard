@@ -85,7 +85,7 @@
     return data;
   }
 
-  const MATCH_COLUMNS = 'id,tournament_id,round,scheduled_at,status,home_player_id,away_player_id,home_score,away_score,venue,notes,created_at,updated_at';
+  const MATCH_COLUMNS = 'id,tournament_id,round,scheduled_at,status,home_player_id,away_player_id,home_score,away_score,venue,notes,created_at,updated_at,has_proof';
   const PUBLIC_PLAYER_COLUMNS = 'id,tournament_id,player_name,team_name,efootball_username,status,avatar_url,created_at';
 
   const api = {
@@ -104,6 +104,12 @@
       return (await run(db().from('players_public').select(PUBLIC_PLAYER_COLUMNS)
         .eq('tournament_id', tournamentId)
         .order('created_at', { ascending: true }))) || [];
+    },
+
+    /** The proof screenshot is loaded on demand only: it can be a few hundred KB. */
+    async getMatchProof(matchId) {
+      const row = await run(db().from('matches').select('id,proof_url').eq('id', matchId).maybeSingle());
+      return (row && row.proof_url) || null;
     },
 
     async getMatches(tournamentId) {

@@ -156,6 +156,52 @@
       });
     },
 
+    PROOF_MAX_CHARS: 1500000,
+
+    /** True for a well-formed proof image data URL within the database limit. */
+    isProofData(value) {
+      return typeof value === 'string' && value.length <= utils.PROOF_MAX_CHARS && utils.AVATAR_RE.test(value);
+    },
+
+    /** Does this match have a proof image? (has_proof from Supabase, proof_url from local storage). */
+    hasProof(m) {
+      return Boolean(m && (m.has_proof || m.proof_url));
+    },
+
+    /**
+     * Read a screenshot, scale it down (keeping its shape) and compress it to a JPEG data URL
+     * that fits the database limit. Tries smaller sizes / lower quality until it fits.
+     */
+    imageToProof(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) { reject(new Error('No file selected.')); return; }
+        if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) { reject(new Error('Choose a JPG, PNG or WebP image.')); return; }
+        if (file.size > 15 * 1024 * 1024) { reject(new Error('Image must be 15 MB or smaller.')); return; }
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That image could not be read.')); };
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          const attempts = [[1600, 0.82], [1400, 0.75], [1200, 0.7], [1000, 0.65], [800, 0.6]];
+          for (const [maxSide, quality] of attempts) {
+            const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingQuality = 'high';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const data = canvas.toDataURL('image/jpeg', quality);
+            if (data.length <= utils.PROOF_MAX_CHARS) { resolve(data); return; }
+          }
+          reject(new Error('That image is too detailed to store. Try a smaller screenshot.'));
+        };
+        img.src = url;
+      });
+    },
+
     /* ---------- Validation ---------- */
     rules: {
       required: (label) => ({

@@ -24,6 +24,25 @@
         : new Date(a.scheduled_at) - new Date(b.scheduled_at)));
   }
 
+  const PROOF_ACCEPT = 'image/png,image/jpeg,image/webp';
+
+  /** Proof area for one match: upload when empty; view / replace / remove when present. */
+  function proofHtml(m) {
+    const input = `<input type="file" accept="${PROOF_ACCEPT}" class="sr-only" data-proof-input aria-label="Upload result proof image">`;
+    if (!EF.utils.hasProof(m)) {
+      return `
+        <label class="proof-drop" data-proof-drop title="Upload a screenshot of the final score">
+          ${ui.icon('image-up', '')}<span><b>Upload proof</b><small>Screenshot of the result</small></span>${input}
+        </label>`;
+    }
+    return `
+      <div class="proof-box">
+        <button type="button" class="proof-box__view" data-proof-view title="View proof">${ui.icon('image', '')}<span><b>Proof attached</b><small>Click to view</small></span></button>
+        <label class="icon-btn icon-btn--sm cursor-pointer" title="Replace proof">${ui.icon('replace', '')}${input}</label>
+        <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-proof-remove title="Remove proof" aria-label="Remove proof">${ui.icon('trash-2', '')}</button>
+      </div>`;
+  }
+
   function rowHtml(m) {
     const statusSelect = `
       <label class="sr-only" for="st-${e(m.id)}">Match status</label>
@@ -60,6 +79,7 @@
           </div>
         </div>
         <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
+          ${proofHtml(m)}
           <p class="text-xs text-danger mr-auto" data-row-error hidden></p>
           ${statusSelect}
           <button type="button" class="btn btn-ghost btn-sm" data-reset disabled>Reset</button>
@@ -138,7 +158,7 @@
 
       const onEdit = (ev) => {
         const form = ev.target.closest('form[data-result]');
-        if (!form) return;
+        if (!form || ev.target.matches('[data-proof-input]')) return;
         if (ev.type === 'input' && ['home_score', 'away_score'].includes(ev.target.name)) {
           const both = form.elements.home_score.value !== '' && form.elements.away_score.value !== '';
           if (both && form.elements.status.value === 'upcoming') form.elements.status.value = 'completed';
@@ -148,6 +168,61 @@
       };
       el.addEventListener('input', onEdit);
       el.addEventListener('change', onEdit);
+
+      const uploadProof = async (form, file) => {
+        const id = form.dataset.result;
+        const zone = form.querySelector('[data-proof-drop], .proof-box');
+        if (zone) zone.classList.add('is-busy');
+        let data;
+        try {
+          data = await EF.utils.imageToProof(file);
+        } catch (err) {
+          if (zone) zone.classList.remove('is-busy');
+          ui.toast(err.message, 'error');
+          return;
+        }
+        const ok = await admin.mutate(() => api.admin.updateMatch(id, { proof_url: data }), { success: 'Proof image saved.' });
+        if (!ok && zone && zone.isConnected) zone.classList.remove('is-busy');
+      };
+
+      el.addEventListener('change', (ev) => {
+        const input = ev.target.closest('[data-proof-input]');
+        if (!input || !input.files || !input.files[0]) return;
+        uploadProof(input.closest('form[data-result]'), input.files[0]);
+        input.value = '';
+      });
+
+      // Drag & drop a screenshot onto the upload area.
+      el.addEventListener('dragover', (ev) => {
+        const zone = ev.target.closest('[data-proof-drop]');
+        if (!zone) return;
+        ev.preventDefault();
+        zone.classList.add('is-over');
+      });
+      el.addEventListener('dragleave', (ev) => {
+        const zone = ev.target.closest('[data-proof-drop]');
+        if (zone && !zone.contains(ev.relatedTarget)) zone.classList.remove('is-over');
+      });
+      el.addEventListener('drop', (ev) => {
+        const zone = ev.target.closest('[data-proof-drop]');
+        if (!zone) return;
+        ev.preventDefault();
+        zone.classList.remove('is-over');
+        const file = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+        if (file) uploadProof(zone.closest('form[data-result]'), file);
+      });
+
+      el.addEventListener('click', async (ev) => {
+        const form = ev.target.closest('form[data-result]');
+        if (!form) return;
+        const m = s.matches.find((x) => x.id === form.dataset.result);
+        if (ev.target.closest('[data-proof-view]')) { ui.openProof(m); return; }
+        const remove = ev.target.closest('[data-proof-remove]');
+        if (remove) {
+          const ok = await ui.confirm({ title: 'Remove proof?', message: 'The proof image for this match will be deleted. The score is not changed.', confirmText: 'Remove proof' });
+          if (ok) await admin.mutate(() => api.admin.updateMatch(m.id, { proof_url: null }), { success: 'Proof removed.', button: remove, label: '' });
+        }
+      });
 
       // Restore unsaved edits that survived a re-render.
       Object.entries(view.drafts).forEach(([id, d]) => {

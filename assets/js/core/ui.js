@@ -327,6 +327,33 @@
       ${win ? `<span class="win-crown" aria-hidden="true">${CROWN_SVG}</span>` : ''}
     </span>`;
 
+  /** Open a match's proof screenshot in a dialog (fetched on demand). */
+  ui.openProof = async function (match) {
+    const title = match && match.home && match.away ? `${match.home.player_name} vs ${match.away.player_name}` : 'Match proof';
+    const modal = ui.modal({ title: 'Result proof', size: 'lg', body: ui.state.loading('Loading proof') });
+    try {
+      const src = (match && match.proof_url) || await EF.api.getMatchProof(match.id);
+      if (!EF.utils.isProofData(src)) {
+        modal.setBody(ui.state.empty({ icon: 'image-off', title: 'No proof uploaded', message: 'There is no proof image for this match yet.' }));
+        return;
+      }
+      const score = Number.isInteger(match.home_score) && Number.isInteger(match.away_score) ? ` · ${match.home_score} - ${match.away_score}` : '';
+      modal.setBody(`
+        <figure class="proof-view">
+          <a href="${src}" target="_blank" rel="noopener" class="proof-view__img" title="Open full size"><img src="${src}" alt="Result proof for ${e(title)}"></a>
+          <figcaption class="proof-view__cap">
+            <span>${ui.icon('shield-check', '')}<b>${e(title)}</b>${e(score)}</span>
+            <a href="${src}" download="match-proof-${e(String(match.id).slice(0, 8))}.jpg" class="btn btn-ghost btn-xs">${ui.icon('download', '')}Download</a>
+          </figcaption>
+        </figure>`);
+      ui.icons();
+    } catch (err) {
+      console.error(err);
+      modal.setBody(ui.state.error({ message: EF.api.friendlyError(err), retry: false }));
+      ui.icons();
+    }
+  };
+
   /** "Winner" ribbon shown under the winning player's name. */
   ui.winChip = (label = 'Winner') => `<span class="win-chip">${ui.icon('trophy', '')}${e(label)}</span>`;
 
@@ -563,6 +590,7 @@
           <span class="inline-flex items-center gap-1.5">${ui.icon('calendar', 'w-3.5 h-3.5')}<span>${e(day)}</span></span>
           <span class="inline-flex items-center gap-1.5">${ui.icon('clock', 'w-3.5 h-3.5')}<span>${e(formatTime(m.scheduled_at))}</span></span>
           <span class="inline-flex items-center gap-1.5 ml-auto font-semibold ${resultTone}">${ui.icon('flag', 'w-3.5 h-3.5')}<span>${e(ui.matchResultText(m))}</span></span>
+          ${EF.utils.hasProof(m) ? `<button type="button" class="proof-btn" data-view-proof="${e(m.id)}">${ui.icon('image', '')}View proof</button>` : ''}
         </footer>
       </article>`;
   };

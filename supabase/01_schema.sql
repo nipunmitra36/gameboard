@@ -201,6 +201,17 @@ create index if not exists matches_tournament_schedule_idx
 create index if not exists matches_home_idx on public.matches (home_player_id);
 create index if not exists matches_away_idx on public.matches (away_player_id);
 
+-- Result proof: a compressed screenshot (JPEG/PNG/WebP data URL) uploaded by an admin.
+-- has_proof lets match lists know a proof exists without downloading the image.
+alter table public.matches add column if not exists proof_url text;
+alter table public.matches drop constraint if exists matches_proof_url_chk;
+alter table public.matches add constraint matches_proof_url_chk check (
+  proof_url is null
+  or (char_length(proof_url) <= 1500000 and proof_url ~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$')
+);
+alter table public.matches add column if not exists has_proof boolean
+  generated always as (proof_url is not null) stored;
+
 -- Both players must be approved members of the match's tournament.
 -- Checked only when the line-up changes, so later edits to a result
 -- still work if a player's status changes afterwards.
@@ -693,14 +704,14 @@ begin
 
   insert into public.matches (
     id, tournament_id, round, scheduled_at, status, home_player_id, away_player_id,
-    home_score, away_score, venue, notes, created_at, updated_at
+    home_score, away_score, venue, notes, created_at, updated_at, proof_url
   )
   select id, tournament_id, round, scheduled_at, status, home_player_id, away_player_id,
-         home_score, away_score, venue, notes, created_at, updated_at
+         home_score, away_score, venue, notes, created_at, updated_at, proof_url
     from jsonb_to_recordset(p_backup -> 'matches') as m(
       id uuid, tournament_id uuid, round integer, scheduled_at timestamptz, status text,
       home_player_id uuid, away_player_id uuid, home_score smallint, away_score smallint,
-      venue text, notes text, created_at timestamptz, updated_at timestamptz
+      venue text, notes text, created_at timestamptz, updated_at timestamptz, proof_url text
     );
 
   insert into public.point_adjustments (id, tournament_id, player_id, points, reason)

@@ -113,6 +113,13 @@ EF.boot(async function fixturesPage() {
     }
   }
 
+  el.list.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-view-proof]');
+    if (!btn) return;
+    const match = view.matches.find((m) => m.id === btn.dataset.viewProof);
+    if (match) ui.openProof(match);
+  });
+
   el.tabs.addEventListener('click', (ev) => {
     const btn = ev.target.closest('[data-status]');
     if (!btn) return;
