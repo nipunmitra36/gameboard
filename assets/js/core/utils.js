@@ -154,27 +154,36 @@
     },
 
     /** Read an image file, centre-crop it to a square and compress it to a small JPEG data URL. */
-    imageToAvatar(file, size = 192) {
+    imageToAvatar(file, maxSize = 640) {
       return new Promise((resolve, reject) => {
         if (!file) { reject(new Error('No file selected.')); return; }
         if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) { reject(new Error('Choose a JPG, PNG or WebP image.')); return; }
-        if (file.size > 5 * 1024 * 1024) { reject(new Error('Image must be 5 MB or smaller.')); return; }
+        if (file.size > 15 * 1024 * 1024) { reject(new Error('Image must be 15 MB or smaller.')); return; }
         const reader = new FileReader();
         reader.onerror = () => reject(new Error('That image could not be read.'));
         reader.onload = () => {
           const img = new Image();
           img.onerror = () => reject(new Error('That image could not be read.'));
           img.onload = () => {
+            // Big cards show the photo at ~250 CSS px (~500 real px on phones), so keep it sharp:
+            // try a large, high-quality square first and step down only if it exceeds the 300K database limit.
             const side = Math.min(img.naturalWidth, img.naturalHeight);
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingQuality = 'high';
-            ctx.fillStyle = '#0b1645';
-            ctx.fillRect(0, 0, size, size);
-            ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
-            resolve(canvas.toDataURL('image/jpeg', 0.82));
+            const top = Math.max(1, Math.min(maxSize, side));
+            const attempts = [[top, 0.9], [top, 0.84], [Math.min(top, 512), 0.82], [Math.min(top, 400), 0.8], [Math.min(top, 256), 0.78]];
+            for (const [size, quality] of attempts) {
+              const canvas = document.createElement('canvas');
+              canvas.width = size;
+              canvas.height = size;
+              const ctx = canvas.getContext('2d');
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.fillStyle = '#0b1645';
+              ctx.fillRect(0, 0, size, size);
+              ctx.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+              const data = canvas.toDataURL('image/jpeg', quality);
+              if (utils.isAvatarData(data)) { resolve(data); return; }
+            }
+            reject(new Error('That photo is too detailed to store. Try a different photo.'));
           };
           img.src = reader.result;
         };

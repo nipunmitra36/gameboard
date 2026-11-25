@@ -383,7 +383,7 @@
             </label>
             <button type="button" class="btn btn-ghost btn-xs" data-photo-remove ${has ? '' : 'hidden'}>${ui.icon('x', '')}Remove</button>
           </div>
-          <p class="text-[11px] text-subtle mt-1">JPG, PNG or WebP · max 5 MB · cropped to a square</p>
+          <p class="text-[11px] text-subtle mt-1">JPG, PNG or WebP · max 15 MB · cropped to a square</p>
           <p class="field-error" data-error-for="${name}" hidden></p>
         </div>
         <input type="hidden" name="${name}" value="${has ? value : ''}">
