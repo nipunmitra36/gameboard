@@ -23,7 +23,10 @@ EF.boot(async function homePage() {
     champ: qs('#champ-name'),
     ticker: qs('#home-ticker'),
     tickerWrap: qs('[data-ticker]'),
+    banners: qs('#home-banners'),
+    bannersWrap: qs('#home-banners-wrap'),
   };
+  let shownBanners = [];
 
   const rowsSkeleton = (n) => Array.from({ length: n }, () => '<div class="skeleton h-[132px] rounded-2xl"></div>').join('');
   const panelEmpty = (icon, title, message) => `<div class="py-2">${ui.state.empty({ icon, title, message })}</div>`;
@@ -149,6 +152,47 @@ EF.boot(async function homePage() {
       return [];
     }
   }
+
+  /** Image announcements under the marquee. The whole section stays hidden when there are none (or on error). */
+  async function loadBanners() {
+    let rows = [];
+    try { rows = await EF.api.getAnnouncements(); } catch (err) { console.warn('Announcements unavailable:', err); }
+    shownBanners = rows;
+    if (!rows.length) { el.bannersWrap.hidden = true; el.banners.innerHTML = ''; return; }
+    el.banners.className = `banner-list${rows.length === 1 ? ' banner-list--one' : ''}`;
+    el.banners.innerHTML = rows.map((a) => `
+      <button type="button" class="banner" data-banner="${e(a.id)}" aria-label="Open announcement: ${e(a.title)}">
+        <img class="banner__bg" src="${a.image_url}" alt="" aria-hidden="true">
+        <img class="banner__img" src="${a.image_url}" alt="${e(a.title)}" loading="lazy">
+        <span class="banner__cap">
+          <span class="banner__tag">${ui.icon('megaphone', '')}Announcement</span>
+          <span class="banner__title">${e(a.title)}</span>
+        </span>
+      </button>`).join('');
+    el.bannersWrap.hidden = false;
+    ui.icons();
+  }
+
+  el.banners.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-banner]');
+    const a = btn && shownBanners.find((x) => x.id === btn.dataset.banner);
+    if (!a) return;
+    const modal = ui.modal({
+      title: 'Announcement',
+      size: 'lg',
+      body: `
+        <figure class="proof-view">
+          <button type="button" class="proof-view__img" title="Click to zoom" data-zoom><img src="${a.image_url}" alt="${e(a.title)}"></button>
+          <figcaption class="proof-view__cap">
+            <span>${ui.icon('megaphone', '')}<b>${e(a.title)}</b></span>
+            <span class="text-xs text-muted">${e(EF.utils.formatDateTime(a.created_at))}</span>
+          </figcaption>
+        </figure>`,
+    });
+    const zoom = modal.body.querySelector('[data-zoom]');
+    zoom.addEventListener('click', () => zoom.classList.toggle('is-zoomed'));
+    ui.icons();
+  });
 
   function showError(message) {
     clearPlayersCarousel();
@@ -438,6 +482,7 @@ EF.boot(async function homePage() {
   async function load({ silent = false } = {}) {
     if (!silent) showLoading();
     const announcements = loadAnnouncements();
+    loadBanners();
     try {
       const d = await EF.api.loadPublicData();
       if (!d.tournament) { renderNoTournament(); renderTicker(null, await announcements); return d; }
@@ -461,5 +506,5 @@ EF.boot(async function homePage() {
 
   initHeroVideo();
   const data = await load();
-  if (data) EF.api.watch({ key: 'home', tables: ['matches', 'tournaments', 'news_posts'], onChange: () => load({ silent: true }) });
+  if (data) EF.api.watch({ key: 'home', tables: ['matches', 'tournaments', 'news_posts', 'announcements'], onChange: () => load({ silent: true }) });
 });

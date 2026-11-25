@@ -746,5 +746,29 @@ end;
 $$;
 revoke execute on function public.import_backup(jsonb) from public, anon;
 
+-- ---------------------------------------------------------------------
+--  announcements — image + title banners shown under the home marquee.
+-- ---------------------------------------------------------------------
+create table if not exists public.announcements (
+  id         uuid primary key default gen_random_uuid(),
+  title      text not null check (char_length(btrim(title)) between 2 and 120),
+  image_url  text not null,
+  is_active  boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint announcements_image_chk check (
+    char_length(image_url) <= 1500000
+    and image_url ~ '^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$'
+  )
+);
+
+create index if not exists announcements_listing_idx
+  on public.announcements (created_at desc);
+
+drop trigger if exists announcements_updated_at_trg on public.announcements;
+create trigger announcements_updated_at_trg
+  before update on public.announcements
+  for each row execute function public.set_updated_at();
+
 -- Make the new tables and functions visible to the API immediately.
 notify pgrst, 'reload schema';

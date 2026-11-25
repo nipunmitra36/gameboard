@@ -202,5 +202,44 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------
+--  announcements (public reads active ones, admin-only writes)
+-- ---------------------------------------------------------------------
+alter table public.announcements enable row level security;
+revoke insert, update, delete, truncate on public.announcements from anon;
+grant select on public.announcements to anon, authenticated;
+grant insert, update, delete on public.announcements to authenticated;
+
+drop policy if exists announcements_public_read  on public.announcements;
+drop policy if exists announcements_admin_insert on public.announcements;
+drop policy if exists announcements_admin_update on public.announcements;
+drop policy if exists announcements_admin_delete on public.announcements;
+
+create policy announcements_public_read on public.announcements
+  for select to anon, authenticated
+  using (is_active or public.is_admin());
+
+create policy announcements_admin_insert on public.announcements
+  for insert to authenticated
+  with check (public.is_admin());
+
+create policy announcements_admin_update on public.announcements
+  for update to authenticated
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create policy announcements_admin_delete on public.announcements
+  for delete to authenticated
+  using (public.is_admin());
+
+do $$
+begin
+  execute 'alter publication supabase_realtime add table public.announcements';
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end;
+$$;
+
 -- Make the new tables and functions visible to the API immediately.
 notify pgrst, 'reload schema';

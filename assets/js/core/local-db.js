@@ -11,11 +11,11 @@
 
   const DB_KEY = 'ef_local_db_v1';
   const SESSION_KEY = 'ef_local_session_v1';
-  const TABLES = ['tournaments', 'players', 'matches', 'point_adjustments', 'admin_users', 'news_posts'];
+  const TABLES = ['tournaments', 'players', 'matches', 'point_adjustments', 'admin_users', 'news_posts', 'announcements'];
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
   /* ---------------- storage ---------------- */
-  const empty = () => ({ version: 1, tournaments: [], players: [], matches: [], point_adjustments: [], admin_users: [], news_posts: [], accounts: [] });
+  const empty = () => ({ version: 1, tournaments: [], players: [], matches: [], point_adjustments: [], admin_users: [], news_posts: [], announcements: [], accounts: [] });
 
   function read() {
     try {
@@ -109,6 +109,8 @@
       }
       case 'news_posts':
         return data.news_posts.filter((post) => admin || !post.expires_at || new Date(post.expires_at) > new Date());
+      case 'announcements':
+        return data.announcements.filter((a) => admin || a.is_active);
       case 'players': case 'point_adjustments': return admin ? data[table] : [];
       case 'admin_users': { const s = getSession(); return s ? data.admin_users.filter((a) => a.user_id === s.user.id || admin) : []; }
       default: throw dbError(`Could not find the table 'public.${table}'`, 'PGRST205');
@@ -161,6 +163,13 @@
     } else post.expires_at = null;
   }
 
+  function normaliseAnnouncement(a) {
+    a.title = String(a.title || '').trim();
+    if (a.title.length < 2 || a.title.length > 120) throw dbError('violates announcements_title check', '23514');
+    if (!EF.utils.isProofData(a.image_url)) throw dbError('violates announcements_image_chk', '23514');
+    a.is_active = a.is_active !== false;
+  }
+
   function checkMatch(m, data, isInsert, before) {
     if (m.home_player_id === m.away_player_id) throw dbError('violates matches_distinct_players_chk', '23514');
     if (!['upcoming', 'live', 'completed', 'postponed'].includes(m.status)) throw dbError('violates matches_status check', '23514');
@@ -184,6 +193,7 @@
     matches: () => ({ status: 'upcoming', round: null, home_score: null, away_score: null, venue: null, notes: null }),
     point_adjustments: () => ({}),
     news_posts: () => ({ post_type: 'news', is_pinned: false, expires_at: null }),
+    announcements: () => ({ is_active: true }),
   };
 
   function applyInsert(data, table, values) {
@@ -196,6 +206,7 @@
     if (table === 'players') normalisePlayer(row, data, true);
     if (table === 'matches') checkMatch(row, data, true);
     if (table === 'news_posts') normaliseNewsPost(row);
+    if (table === 'announcements') normaliseAnnouncement(row);
     if (table === 'point_adjustments') {
       row.points = Number(row.points);
       row.reason = clean(row.reason);
@@ -222,6 +233,7 @@
     if (table === 'players') normalisePlayer(next, data, false, before);
     if (table === 'matches') checkMatch(next, data, false, before);
     if (table === 'news_posts') normaliseNewsPost(next);
+    if (table === 'announcements') normaliseAnnouncement(next);
     Object.assign(row, next);
     return row;
   }

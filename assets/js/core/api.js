@@ -179,6 +179,14 @@
       return posts.filter((post) => !post.expires_at || new Date(post.expires_at) > new Date());
     },
 
+    /** Active image announcements for the home page, newest first. */
+    async getAnnouncements() {
+      const rows = (await run(db().from('announcements').select('id,title,image_url,created_at')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }))) || [];
+      return rows.filter((a) => EF.utils.isProofData(a.image_url)).slice(0, 12);
+    },
+
     /** Attach player objects (home / away) to match rows. */
     attachPlayers(matches, players) {
       const byId = new Map(players.map((p) => [p.id, p]));
@@ -398,6 +406,23 @@
 
     async deleteNewsPost(id) {
       return run(db().from('news_posts').delete().eq('id', id));
+    },
+
+    async listAnnouncements() {
+      return (await run(db().from('announcements').select('*')
+        .order('created_at', { ascending: false }))) || [];
+    },
+
+    async createAnnouncement(values) {
+      return run(db().from('announcements').insert(values).select().single());
+    },
+
+    async updateAnnouncement(id, values) {
+      return run(db().from('announcements').update(values).eq('id', id).select().single());
+    },
+
+    async deleteAnnouncement(id) {
+      return run(db().from('announcements').delete().eq('id', id));
     },
   };
 
