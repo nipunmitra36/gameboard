@@ -1256,7 +1256,7 @@ body::after {
 .player-card:hover, .player-card:focus-visible { transform: translateY(-5px); border-color: rgba(var(--accent-rgb), 0.75); box-shadow: 0 22px 44px -22px rgba(var(--accent-rgb), 0.55); }
 .player-card:hover::after { transform: translateX(110%); }
 .player-card__media { position: relative; aspect-ratio: 4 / 4.4; overflow: hidden; background: #0b1645; }
-.player-card__media .avatar { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; border: 0; box-shadow: none; font-size: clamp(42px, 9vw, 64px); transition: transform 0.5s ease; }
+.player-card__media .avatar { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; border: 0; box-shadow: none; font-size: clamp(42px, 9vw, 64px); transition: transform 0.5s ease; image-rendering: auto; backface-visibility: hidden; }
 .player-card__media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(6, 12, 48, 0.55) 75%, rgba(6, 12, 48, 0.98) 100%); pointer-events: none; }
 .player-card:hover .player-card__media .avatar { transform: scale(1.06); }
 .player-card__status { position: absolute; top: 10px; right: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgb(var(--accent-rgb)); background: rgba(4, 10, 40, 0.72); border: 1px solid rgba(var(--accent-rgb), 0.55); backdrop-filter: blur(6px); }
@@ -1272,7 +1272,7 @@ body::after {
 @media (prefers-reduced-motion: reduce) { .player-card, .player-card::after, .player-card__media .avatar { transition: none; } }
 .player-carousel { min-width: 0; }
 .player-carousel__viewport { overflow: hidden; }
-.player-carousel__track { display: flex; gap: 14px; transition: transform 0.5s ease; will-change: transform; }
+.player-carousel__track { display: flex; gap: 14px; transition: transform 0.5s ease; }
 .player-carousel__slide { flex: 0 0 calc((100% - 14px) / 2); min-width: 0; padding: 6px 0; }
 @media (min-width: 640px) { .player-carousel__slide { flex-basis: calc((100% - 42px) / 4); } }
 @media (prefers-reduced-motion: reduce) { .player-carousel__track { transition: none; } }

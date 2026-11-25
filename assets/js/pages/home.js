@@ -361,7 +361,8 @@ EF.boot(async function homePage() {
     };
     const moveTo = (animate) => {
       track.style.transition = animate ? '' : 'none';
-      track.style.transform = `translateX(-${step * index}px)`;
+      // Whole pixels only: a fractional offset resamples the photos and makes them look blurry.
+      track.style.transform = `translate3d(-${Math.round(step * index)}px, 0, 0)`;
       if (!animate) {
         track.offsetWidth;
         track.style.transition = '';
