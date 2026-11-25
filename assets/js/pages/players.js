@@ -76,6 +76,7 @@ EF.boot(async function playersPage() {
               <th scope="col">eFootball Username</th>
               <th scope="col">Registration Status</th>
               <th scope="col">Registered</th>
+              <th scope="col" class="actions">Gamer Card</th>
             </tr>
           </thead>
           <tbody>
@@ -87,6 +88,7 @@ EF.boot(async function playersPage() {
                 <td><span class="inline-flex items-center gap-2 font-mono text-[13px] text-volt">${ui.icon('gamepad-2', 'w-3.5 h-3.5')}${e(p.efootball_username)}</span></td>
                 <td>${ui.playerStatusBadge(p.status)}</td>
                 <td class="text-muted text-[13px]">${e(formatDate(p.created_at, { day: '2-digit', month: 'short', year: 'numeric' }))}</td>
+                <td class="actions"><button type="button" class="gcard-btn" data-card="${e(p.id)}" aria-label="Gamer card for ${e(p.player_name)}">${ui.icon('id-card', '')}Card</button></td>
               </tr>`).join('')}
           </tbody>
         </table>
@@ -101,6 +103,7 @@ EF.boot(async function playersPage() {
               <p class="text-xs text-muted truncate">${e(p.team_name)} · <span class="text-volt">${e(p.efootball_username)}</span></p>
             </div>
             <span class="shrink-0 pl-badge" title="${e(p.status)}">${ui.playerStatusBadge(p.status)}</span>
+            <button type="button" class="gcard-btn gcard-btn--icon shrink-0" data-card="${e(p.id)}" aria-label="Gamer card for ${e(p.player_name)}" title="Gamer card">${ui.icon('id-card', '')}</button>
           </li>`).join('')}
       </ul>`;
     ui.icons();
@@ -134,6 +137,12 @@ EF.boot(async function playersPage() {
   el.status.addEventListener('change', () => { view.status = el.status.value; render(); });
   el.sort.addEventListener('change', () => { view.sort = el.sort.value; render(); });
   el.list.addEventListener('click', (ev) => {
+    const card = ev.target.closest('[data-card]');
+    if (card) {
+      const p = view.players.find((x) => x.id === card.dataset.card);
+      if (p) EF.gamerCard.open(p, { tournament: EF.state.tournament || {}, number: EF.gamerCard.idNo(p, view.players) });
+      return;
+    }
     if (!ev.target.closest('[data-clear-filters]')) return;
     view.q = ''; view.status = 'all';
     el.search.value = ''; el.status.value = 'all';

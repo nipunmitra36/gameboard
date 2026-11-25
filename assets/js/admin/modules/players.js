@@ -201,6 +201,7 @@
                       <td class="actions">
                         <div class="inline-flex gap-1.5">
                           ${p.status !== 'approved' ? `<button type="button" class="icon-btn icon-btn--sm icon-btn--success" data-approve="${e(p.id)}" title="Approve" aria-label="Approve ${e(p.player_name)}">${ui.icon('check', '')}</button>` : ''}
+                          ${p.status !== 'rejected' ? `<button type="button" class="icon-btn icon-btn--sm" data-card="${e(p.id)}" title="Gamer card" aria-label="Gamer card for ${e(p.player_name)}">${ui.icon('id-card', '')}</button>` : ''}
                           <button type="button" class="icon-btn icon-btn--sm" data-edit="${e(p.id)}" title="Edit" aria-label="Edit ${e(p.player_name)}">${ui.icon('pencil', '')}</button>
                           <button type="button" class="icon-btn icon-btn--sm icon-btn--danger" data-delete="${e(p.id)}" title="Delete" aria-label="Delete ${e(p.player_name)}">${ui.icon('trash-2', '')}</button>
                         </div>
@@ -258,6 +259,12 @@
           return;
         }
         if (t.closest('[data-add]')) { admin.openPlayerForm(); return; }
+        const card = t.closest('[data-card]');
+        if (card) {
+          const p = admin.playerById(card.dataset.card);
+          if (p) EF.gamerCard.open(p, { tournament: s.tournament || {}, number: EF.gamerCard.idNo(p, s.players) });
+          return;
+        }
         const edit = t.closest('[data-edit]');
         if (edit) { admin.openPlayerForm(admin.playerById(edit.dataset.edit)); return; }
         const del = t.closest('[data-delete]');

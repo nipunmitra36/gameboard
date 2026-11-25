@@ -77,7 +77,10 @@ EF.boot(async function profilePage() {
             <h3 class="font-display text-xl font-bold text-white">${e(tournament.name)}${e(season)}</h3>
             <p class="text-sm text-muted mt-1">${e(record.player_name)} · ${e(record.team_name)}</p>
           </div>
-          ${ui.playerStatusBadge(record.status)}
+          <div class="flex flex-wrap items-center gap-2">
+            ${ui.playerStatusBadge(record.status)}
+            <button type="button" class="btn btn-primary btn-sm" data-card="${e(record.id)}">${ui.icon('id-card', '')}Gamer Card</button>
+          </div>
         </div>
         ${stats}
       </article>`;
@@ -195,6 +198,12 @@ EF.boot(async function profilePage() {
         </div>`;
 
       root.querySelector('[data-profile-signout]').addEventListener('click', signOut);
+      root.querySelectorAll('[data-card]').forEach((btn) => btn.addEventListener('click', () => {
+        const record = publicRecords.find((r) => r.id === btn.dataset.card);
+        if (!record) return;
+        const all = data.players.some((p) => p.id === record.id) ? data.players : data.players.concat(record);
+        EF.gamerCard.open(record, { tournament: tournamentById.get(record.tournament_id) || {}, number: EF.gamerCard.idNo(record, all) });
+      }));
       const form = root.querySelector('[data-profile-update-form]');
       ui.liveClear(form);
       ui.bindPhotoFields(form);
